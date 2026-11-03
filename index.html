@@ -113,7 +113,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.4.0 (BEP & Impact Analysis)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.5.0 (BEP & Impact Analysis)</p>
                 </div>
             </div>
 
@@ -695,27 +695,10 @@
                                             <div class="relative">
                                                 <div @click="openIngredientSelect(idx)" class="w-full px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
                                                     <span>{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
-                                                    <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
                                                 </div>
                                                 
-                                                <!-- Dropdown List dengan Search -->
-                                                <div v-if="activeIngredientSelectIdx === idx" class="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                                                    <div class="p-2 border-b border-slate-100 dark:border-slate-700">
-                                                        <div class="relative">
-                                                            <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
-                                                            <input v-model="ingredientSelectSearch" type="text" placeholder="Cari bahan..." class="w-full pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none text-xs" autofocus @click.stop>
-                                                        </div>
-                                                    </div>
-                                                    <div class="max-h-48 overflow-y-auto">
-                                                        <div v-if="filteredGroupedIngredientsOptions.length === 0" class="p-3 text-center text-xs text-slate-500 italic">Bahan tidak ditemukan.</div>
-                                                        <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label">
-                                                            <div class="px-3 py-1 bg-slate-100 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
-                                                            <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(idx, ing.id)" class="px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer border-b border-slate-50 dark:border-slate-700/50 last:border-0 truncate" :class="item.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'">
-                                                                {{ ing.name }} {{ ing.brand ? '— ' + ing.brand : '' }}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                /div>
                                             </div>
                                             
                                             <!-- Backdrop Overlay untuk menutup Dropdown Search -->
@@ -1051,7 +1034,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.4.0 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.5.0 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1064,6 +1047,68 @@
                         <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
                             <i class="fa-solid fa-lock"></i>
                         </div>
+
+        <!-- FULL SCREEN MODAL: PILIH BAHAN BAKU -->
+        <transition name="toast-slide">
+            <div v-if="activeIngredientSelectIdx !== null" class="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex flex-col h-[100dvh] w-full overflow-hidden">
+                <div class="bg-white dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm pt-safe">
+                    <div class="flex items-center gap-3">
+                        <button type="button" @click="closeIngredientSelect" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                            <i class="fa-solid fa-arrow-left text-base"></i>
+                        </button>
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-white text-base">Pilih Bahan Baku</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Pilih bahan baku atau sub-resep untuk komposisi</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="closeIngredientSelect" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1">
+                        Batal
+                    </button>
+                </div>
+
+                <div class="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-inner">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input v-model="ingredientSelectSearch" type="text" placeholder="Cari nama bahan, merk, atau sub-resep..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm font-medium" autofocus>
+                        <button v-if="ingredientSelectSearch" @click="ingredientSelectSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 space-y-4 pb-safe">
+                    <div v-if="filteredGroupedIngredientsOptions.length === 0" class="text-center py-12 text-slate-400 italic">
+                        <i class="fa-solid fa-box-open text-3xl mb-2 block"></i>
+                        Bahan baku tidak ditemukan.
+                    </div>
+
+                    <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label" class="space-y-2">
+                        <div class="px-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-[10px]"></i> {{ group.label }}
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60 shadow-sm overflow-hidden">
+                            <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(activeIngredientSelectIdx, ing.id)" class="px-4 py-3 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 cursor-pointer flex items-center justify-between transition-colors" :class="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold' : ''">
+                                <div class="flex-1 min-w-0 pr-3">
+                                    <div class="text-sm text-slate-800 dark:text-slate-100 truncate font-semibold">
+                                        {{ ing.name }}
+                                    </div>
+                                    <div v-if="ing.brand" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                        Merk: {{ ing.brand }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span v-if="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id" class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Terpilih
+                                    </span>
+                                    <i v-else class="fa-solid fa-chevron-right text-xs text-slate-300 dark:text-slate-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
                         <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-1">Buka Kunci Dapur</h3>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Masukkan 4 digit PIN Owner</p>
                         
