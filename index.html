@@ -62,7 +62,6 @@
                 </div>
 
                 <div class="space-y-4">
-                    <!-- Tombol Register Dihapus untuk Keamanan Pihak Ketiga -->
                     <div class="flex border-b border-slate-200 dark:border-slate-700 text-sm font-semibold">
                         <div class="flex-1 py-2 text-center border-amber-500 text-amber-600 border-b-2">Masuk ke Sistem</div>
                     </div>
@@ -95,13 +94,18 @@
             
             <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                 <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                <p class="text-[9px] font-mono mt-0.5">v8.2.0 (GitHub PWA)</p>
+                <p class="text-[9px] font-mono mt-0.5">v8.2.1 (GitHub PWA)</p>
             </div>
         </div>
 
         <!-- MAIN APP INTERFACE -->
         <div v-else class="min-h-screen flex flex-col pb-24 relative">
             
+            <!-- Global Floating Offline Indicator FIX -->
+            <div v-if="!isOnline" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg shadow-red-900/20 text-[11px] font-bold flex items-center gap-2 border border-red-500 transition-all pointer-events-none">
+                <i class="fa-solid fa-wifi-slash animate-pulse"></i> Mode Offline
+            </div>
+
             <!-- Header dengan Identitas Toko Utama -->
             <header class="bg-slate-900 dark:bg-slate-950 text-white p-4 sticky top-0 z-30 shadow-md transition-colors border-b border-slate-800" :class="isKitchenMode ? 'border-b-amber-500' : ''">
                 <div class="max-w-5xl mx-auto flex justify-between items-center">
@@ -116,11 +120,7 @@
                                 </h1>
                                 <span v-if="isKitchenMode" class="text-[9px] px-1.5 py-0.5 bg-amber-900/80 text-amber-300 rounded font-bold border border-amber-700 animate-pulse">KITCHEN</span>
                                 <span v-else class="text-[9px] px-1.5 py-0.5 bg-slate-800 text-amber-300 rounded font-mono border border-slate-700">F&B</span>
-                                
-                                <!-- App Network Status -->
-                                <span v-if="!isOnline" class="text-[9px] px-1.5 py-0.5 bg-red-900/80 text-red-300 rounded font-bold border border-red-700 flex items-center gap-1">
-                                    <i class="fa-solid fa-wifi-slash"></i> Offline
-                                </span>
+                                <!-- Badge offline inline dihapus untuk mencegah layout shifting -->
                             </div>
                             <p class="text-[10px] text-slate-400 truncate max-w-[180px]">
                                 <i class="fa-regular fa-envelope mr-1"></i>{{ user.email }}
@@ -557,7 +557,7 @@
                             <i :class="recipeForm.type === 'prep' ? 'fa-solid fa-box-open text-indigo-500' : 'fa-solid fa-utensils text-amber-500'" class="mr-2"></i>
                             {{ editingRecipeId ? 'Ubah' : 'Buat' }} {{ recipeForm.type === 'prep' ? 'Sub-Resep / Adonan' : 'Menu Jualan' }}
                         </h3>
-                        <button @click="showRecipeModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">&times;</button>
+                        <button type="button" @click="showRecipeModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">&times;</button>
                     </div>
 
                     <form @submit.prevent="saveRecipe" class="flex flex-col flex-1 overflow-hidden text-sm">
@@ -750,7 +750,7 @@
                 <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-xl my-8 transition-colors">
                     <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
                         <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ editingIngredientId ? 'Ubah Bahan Baku' : 'Tambah Bahan Mentah' }}</h3>
-                        <button @click="showIngredientModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        <button type="button" @click="showIngredientModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
                     </div>
                     <form @submit.prevent="saveIngredient" class="space-y-4 text-sm">
                         <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
@@ -825,7 +825,7 @@
                 <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-xl transition-colors">
                     <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
                         <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ editingSupplierId ? 'Ubah Supplier' : 'Tambah Supplier' }}</h3>
-                        <button @click="showSupplierModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        <button type="button" @click="showSupplierModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
                     </div>
                     <form @submit.prevent="saveSupplier" class="space-y-3 text-sm">
                         <div>
@@ -853,7 +853,7 @@
                 <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm flex flex-col max-h-[90vh] shadow-xl transition-colors">
                     <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 p-4 shrink-0">
                         <h3 class="font-bold text-slate-900 dark:text-white text-lg"><i class="fa-solid fa-gear text-amber-500 mr-1.5"></i> Pengaturan Toko</h3>
-                        <button @click="showSettingsModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        <button type="button" @click="showSettingsModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
                     </div>
                     
                     <div class="p-4 overflow-y-auto flex-1 space-y-6">
@@ -893,7 +893,7 @@
                                             <input type="number" v-model.number="plat.fee" @change="saveUserSettings" class="w-12 text-center text-xs font-mono py-1 focus:outline-none bg-transparent dark:text-white">
                                             <span class="text-xs text-slate-500 dark:text-slate-400 pr-1">%</span>
                                         </div>
-                                        <button @click="removePlatform(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                        <button type="button" @click="removePlatform(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -911,7 +911,7 @@
                                 <div v-if="categories.length === 0" class="text-xs text-center text-slate-400 py-2">Belum ada kategori.</div>
                                 <div v-for="(cat, idx) in categories" :key="idx" class="flex justify-between items-center py-1.5 px-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 mb-1 shadow-sm">
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ cat }}</span>
-                                    <button @click="removeCategory(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    <button type="button" @click="removeCategory(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
                                 </div>
                             </div>
                             <form @submit.prevent="addCategory" class="flex gap-2">
@@ -923,9 +923,9 @@
                     
                     <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                         <div class="text-[9px] text-slate-400 text-left leading-tight">
-                            <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.2.0 (GitHub PWA)
+                            <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.2.1 (GitHub PWA)
                         </div>
-                        <button @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
+                        <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                     </div>
                 </div>
             </div>
@@ -1191,7 +1191,6 @@
                     if (!isConfigured) { alert("Konfigurasi Firebase belum diisi."); return; }
                     this.authError = ''; this.loading = true;
                     try {
-                        // Register dihapus, hanya bisa login
                         await signInWithEmailAndPassword(auth, this.authForm.email, this.authForm.password);
                     } catch (err) { this.authError = "Email atau password salah/invalid."; } 
                     finally { this.loading = false; }
@@ -1244,7 +1243,8 @@
                 },
                 async saveUserSettings() {
                     if(!db || !this.user) return;
-                    await setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), { 
+                    // Dont await for offline snappiness
+                    setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), { 
                         categories: this.categories,
                         platforms: this.platforms,
                         storeName: this.storeName,
@@ -1343,12 +1343,25 @@
                     this.showSupplierModal = true;
                 },
                 async saveSupplier() {
+                    const nameToSave = this.supplierForm.name.trim().toLowerCase();
+                    const exists = this.suppliers.find(s => s.name.toLowerCase() === nameToSave && s.id !== this.editingSupplierId);
+                    if (exists) { 
+                        alert("Supplier dengan nama '" + this.supplierForm.name + "' sudah ada!"); 
+                        return; 
+                    }
+                    
                     const data = { ...this.supplierForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/suppliers`);
-                    if (this.editingSupplierId) await updateDoc(doc(ref, this.editingSupplierId), data); else await addDoc(ref, data);
+                    
+                    // Hapus await agar UI tidak nge-hang saat offline (Optimistic UI)
+                    if (this.editingSupplierId) updateDoc(doc(ref, this.editingSupplierId), data); 
+                    else addDoc(ref, data);
+                    
                     this.showSupplierModal = false;
                 },
-                async deleteSupplier(id) { if (confirm("Hapus?")) await deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); },
+                async deleteSupplier(id) { 
+                    if (confirm("Hapus?")) deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); // Hapus await
+                },
 
                 openIngredientModal(ing = null) {
                     this.editingIngredientId = ing ? ing.id : null;
@@ -1356,12 +1369,25 @@
                     this.showIngredientModal = true;
                 },
                 async saveIngredient() {
+                    const nameToSave = this.ingredientForm.name.trim().toLowerCase();
+                    const exists = this.ingredients.find(i => i.name.toLowerCase() === nameToSave && i.id !== this.editingIngredientId);
+                    if (exists) { 
+                        alert("Bahan baku dengan nama '" + this.ingredientForm.name + "' sudah ada di database!"); 
+                        return; 
+                    }
+                    
                     const data = { ...this.ingredientForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/ingredients`);
-                    if (this.editingIngredientId) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data);
+                    
+                    // Hapus await agar UI tidak nge-hang saat offline
+                    if (this.editingIngredientId) updateDoc(doc(ref, this.editingIngredientId), data); 
+                    else addDoc(ref, data);
+                    
                     this.showIngredientModal = false;
                 },
-                async deleteIngredient(id) { if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); },
+                async deleteIngredient(id) { 
+                    if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); 
+                },
 
                 openRecipeModal(recipe = null, forceType = null) {
                     this.editingRecipeId = recipe ? recipe.id : null;
@@ -1414,6 +1440,13 @@
                     }
                 },
                 async saveRecipe() {
+                    const nameToSave = this.recipeForm.name.trim().toLowerCase();
+                    const exists = this.recipes.find(r => r.name.toLowerCase() === nameToSave && r.id !== this.editingRecipeId);
+                    if (exists) { 
+                        alert("Resep dengan nama '" + this.recipeForm.name + "' sudah ada!"); 
+                        return; 
+                    }
+                    
                     if (this.recipeForm.type === 'menu') {
                         this.recipeForm.yieldQty = 1;
                         this.recipeForm.yieldUnit = 'porsi';
@@ -1425,12 +1458,17 @@
                     }
                     const data = { ...this.recipeForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/recipes`);
-                    if (this.editingRecipeId) await updateDoc(doc(ref, this.editingRecipeId), data); else await addDoc(ref, data);
+                    
+                    // Hapus await agar UI tidak nge-hang saat offline
+                    if (this.editingRecipeId) updateDoc(doc(ref, this.editingRecipeId), data); 
+                    else addDoc(ref, data);
                     
                     this.recipeListTab = this.recipeForm.type; 
                     this.showRecipeModal = false;
                 },
-                async deleteRecipe(id) { if (confirm("Hapus resep ini?")) await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); }
+                async deleteRecipe(id) { 
+                    if (confirm("Hapus resep ini?")) deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); // Hapus await
+                }
             }
         }).mount('#app');
     </script>
