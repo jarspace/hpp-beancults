@@ -524,6 +524,10 @@
                                     <div class="flex justify-between items-end pt-1">
                                         <div>
                                             <div class="text-[10px] text-slate-400">Supplier: <span class="font-medium text-slate-600 dark:text-slate-300">{{ getSupplierName(ing.supplierId) }}</span></div>
+                                            <!-- NEW: TIMESTAMP DISPLAY IN INGREDIENTS LIST -->
+                                            <div class="text-[9px] text-slate-400 mt-0.5 italic">
+                                                <i class="fa-regular fa-clock text-[8px] mr-0.5"></i> Diubah: {{ formatDate(ing.updatedAt) }}
+                                            </div>
                                         </div>
                                         <div v-if="!isKitchenMode" class="text-xs font-bold text-amber-800 dark:text-amber-300 font-mono bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded shadow-sm border border-amber-200 dark:border-amber-800/50">
                                             HPP/{{ ing.unit }}: Rp {{ formatNumber(calculateNetUnitPrice(ing)) }}
@@ -683,17 +687,39 @@
                                     <div v-for="(item, idx) in recipeForm.items" :key="'item-'+idx" class="flex flex-col gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative group mb-3" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10' : ''">
                                         <button type="button" @click="removeRecipeItemRow(idx)" class="absolute right-2 top-2 text-slate-300 hover:text-red-500 dark:bg-slate-800 bg-white rounded-full p-1 transition-colors z-10"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
 
-                                        <!-- Select Ingredient -->
+                                        <!-- Select Ingredient - DIPERBARUI UNTUK SEARCH -->
                                         <div class="w-full pr-8">
                                             <label class="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Pilih Bahan Baku / Sub-Resep</label>
-                                            <select v-model="item.ingredientId" @change="handleIngredientChange(item)" required class="w-full px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold appearance-none cursor-pointer" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : ''">
-                                                <option value="" disabled>-- Ketuk untuk memilih --</option>
-                                                <optgroup v-for="group in groupedIngredientsOptions" :key="group.label" :label="group.label">
-                                                    <option v-for="ing in group.items" :key="ing.id" :value="ing.id">
-                                                        {{ ing.name }} {{ ing.brand ? '— ' + ing.brand : '' }}
-                                                    </option>
-                                                </optgroup>
-                                            </select>
+                                            
+                                            <!-- Fitur Search di Dropdown Bahan Baku (Custom Select) -->
+                                            <div class="relative">
+                                                <div @click="openIngredientSelect(idx)" class="w-full px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
+                                                    <span>{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
+                                                    <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                                </div>
+                                                
+                                                <!-- Dropdown List dengan Search -->
+                                                <div v-if="activeIngredientSelectIdx === idx" class="absolute left-0 top-full mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                                                    <div class="p-2 border-b border-slate-100 dark:border-slate-700">
+                                                        <div class="relative">
+                                                            <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                                                            <input v-model="ingredientSelectSearch" type="text" placeholder="Cari bahan..." class="w-full pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none text-xs" autofocus @click.stop>
+                                                        </div>
+                                                    </div>
+                                                    <div class="max-h-48 overflow-y-auto">
+                                                        <div v-if="filteredGroupedIngredientsOptions.length === 0" class="p-3 text-center text-xs text-slate-500 italic">Bahan tidak ditemukan.</div>
+                                                        <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label">
+                                                            <div class="px-3 py-1 bg-slate-100 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
+                                                            <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(idx, ing.id)" class="px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-pointer border-b border-slate-50 dark:border-slate-700/50 last:border-0 truncate" :class="item.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'">
+                                                                {{ ing.name }} {{ ing.brand ? '— ' + ing.brand : '' }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Backdrop Overlay untuk menutup Dropdown Search -->
+                                            <div v-if="activeIngredientSelectIdx === idx" @click="closeIngredientSelect" class="fixed inset-0 z-40"></div>
                                         </div>
                                         
                                         <!-- Qty & Unit & Cost Row -->
@@ -831,7 +857,10 @@
                                     </div>
                                     <div>
                                         <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Kategori Bahan</label>
-                                        <input v-model="ingredientForm.category" type="text" placeholder="Daging / Dairy" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                        <select v-model="ingredientForm.category" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                            <option value="">-- Pilih Kategori --</option>
+                                            <option v-for="cat in ingredientCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div>
@@ -987,6 +1016,22 @@
                                 </form>
                             </div>
                             
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-cubes text-slate-400 mr-1"></i> Kategori Bahan Baku</label>
+                                <div class="max-h-40 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div v-if="ingredientCategories.length === 0" class="text-xs text-center text-slate-400 py-2">Belum ada kategori bahan.</div>
+                                    <div v-for="(cat, idx) in ingredientCategories" :key="'ing-cat-'+idx" class="flex justify-between items-center py-1.5 px-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 mb-1 shadow-sm">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ cat }}</span>
+                                        <button type="button" @click="removeIngredientCategory(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                                <form @submit.prevent="addIngredientCategory" class="flex gap-2">
+                                    <input v-model="newIngredientCategory" type="text" placeholder="Kategori Bahan Baru" required class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <button type="submit" class="bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 text-white px-3 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus"></i></button>
+                                </form>
+                            </div>
+
                             <hr class="border-slate-100 dark:border-slate-700">
                             <div class="space-y-3">
                                 <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-tags text-slate-400 mr-1"></i> Kategori Resep</label>
@@ -1168,11 +1213,17 @@
                     
                     showSettingsModal: false,
                     newCategoryName: '',
+                    ingredientCategories: ['Daging', 'Dairy', 'Sayuran', 'Bumbu', 'Lainnya'],
+                    newIngredientCategory: '',
                     newPlatform: { name: '', fee: 20 },
 
                     recipeSearch: '', recipeCategoryFilter: 'All', recipeSort: 'name_asc', 
                     ingredientSearch: '', ingredientSupplierFilter: 'All', ingredientSort: 'name_asc', 
                     priceInputMode: 'margin',
+                    
+                    // Search dropdown states
+                    activeIngredientSelectIdx: null,
+                    ingredientSelectSearch: '',
 
                     showSupplierModal: false, editingSupplierId: null, supplierForm: { name: '', phone: '', address: '' },
                     showIngredientModal: false, editingIngredientId: null, ingredientForm: { name: '', brand: '', category: '', supplierId: '', buyPrice: 0, buyQty: 1, unit: 'gram', yieldPercent: 100 },
@@ -1293,6 +1344,30 @@
                     }
                     return options;
                 },
+                
+                filteredGroupedIngredientsOptions() {
+                    if (!this.ingredientSelectSearch) return this.groupedIngredientsOptions;
+                    
+                    const searchLower = this.ingredientSelectSearch.toLowerCase();
+                    const filteredOptions = [];
+                    
+                    for (const group of this.groupedIngredientsOptions) {
+                        const filteredItems = group.items.filter(item => 
+                            item.name.toLowerCase().includes(searchLower) || 
+                            (item.brand && item.brand.toLowerCase().includes(searchLower))
+                        );
+                        
+                        if (filteredItems.length > 0) {
+                            filteredOptions.push({
+                                label: group.label,
+                                items: filteredItems
+                            });
+                        }
+                    }
+                    
+                    return filteredOptions;
+                },
+                
                 sortedSuppliers() { return [...this.suppliers].sort((a, b) => a.name.localeCompare(b.name)); },
                 filteredAndSortedIngredients() {
                     let result = this.ingredients;
@@ -1371,10 +1446,12 @@
                 async logout() { if(auth) await signOut(auth); },
                 
                 enableKitchenMode() {
-                    this.isKitchenMode = true;
-                    localStorage.setItem('hpp_kitchen_mode', 'true');
-                    if (this.currentTab === 'dashboard' || this.currentTab === 'suppliers') {
-                        this.currentTab = 'recipes';
+                    if (confirm("Anda akan masuk ke Mode Dapur. Halaman ini hanya akan menampilkan SOP/Resep dan Stok Bahan Baku. Harga modal (HPP) tidak akan ditampilkan. Lanjutkan?")) {
+                        this.isKitchenMode = true;
+                        localStorage.setItem('hpp_kitchen_mode', 'true');
+                        if (this.currentTab === 'dashboard' || this.currentTab === 'suppliers') {
+                            this.currentTab = 'recipes';
+                        }
                     }
                 },
                 unlockKitchenMode() {
@@ -1408,6 +1485,7 @@
                     if (docSnap.exists()) {
                         const d = docSnap.data();
                         if (d.categories) this.categories = d.categories;
+                        if (d.ingredientCategories) this.ingredientCategories = d.ingredientCategories;
                         if (d.platforms) this.platforms = d.platforms;
                         if (d.storeName) this.storeName = d.storeName;
                         if (d.kitchenPin) this.kitchenPin = d.kitchenPin;
@@ -1419,6 +1497,7 @@
                     if(!db || !this.user) return;
                     setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), { 
                         categories: this.categories,
+                        ingredientCategories: this.ingredientCategories,
                         platforms: this.platforms,
                         storeName: this.storeName,
                         kitchenPin: this.kitchenPin,
@@ -1429,6 +1508,8 @@
                 
                 addCategory() { if(this.newCategoryName && !this.categories.includes(this.newCategoryName)) { this.categories.push(this.newCategoryName); this.saveUserSettings(); this.newCategoryName = ''; } },
                 removeCategory(idx) { if(confirm("Hapus kategori ini?")) { this.categories.splice(idx, 1); this.saveUserSettings(); } },
+                addIngredientCategory() { if(this.newIngredientCategory && !this.ingredientCategories.includes(this.newIngredientCategory)) { this.ingredientCategories.push(this.newIngredientCategory); this.saveUserSettings(); this.newIngredientCategory = ''; } },
+                removeIngredientCategory(idx) { if(confirm("Hapus kategori bahan ini?")) { this.ingredientCategories.splice(idx, 1); this.saveUserSettings(); } },
                 addPlatform() { if(this.newPlatform.name && this.newPlatform.fee >= 0) { this.platforms.push({...this.newPlatform}); this.saveUserSettings(); this.newPlatform = { name: '', fee: 20 }; } },
                 removePlatform(idx) { if(confirm("Hapus platform ini?")) { this.platforms.splice(idx, 1); this.saveUserSettings(); } },
 
@@ -1443,7 +1524,7 @@
                         return r ? `[Sub] ${r.name}` : 'Resep Dihapus';
                     }
                     const i = this.getIngredient(id); 
-                    return i ? i.name : 'Bahan Dihapus'; 
+                    return i ? i.name : null; 
                 },
                 getIngredientUnit(id) { 
                     if (id && id.startsWith('recipe_')) {
@@ -1539,8 +1620,18 @@
                 },
                 async saveIngredient() {
                     const nameToSave = this.ingredientForm.name.trim().toLowerCase();
-                    const exists = this.ingredients.find(i => i.name.toLowerCase() === nameToSave && i.id !== this.editingIngredientId);
-                    if (exists) { alert("Bahan baku dengan nama '" + this.ingredientForm.name + "' sudah ada di database!"); return; }
+                    const brandToSave = this.ingredientForm.brand ? this.ingredientForm.brand.trim().toLowerCase() : '';
+                    
+                    const exists = this.ingredients.find(i => 
+                        i.name.toLowerCase() === nameToSave && 
+                        (i.brand ? i.brand.trim().toLowerCase() : '') === brandToSave && 
+                        i.id !== this.editingIngredientId
+                    );
+                    
+                    if (exists) { 
+                        alert("Bahan baku dengan nama '" + this.ingredientForm.name + "' dan brand yang sama sudah ada di database!"); 
+                        return; 
+                    }
                     
                     const data = { ...this.ingredientForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/ingredients`);
@@ -1570,6 +1661,19 @@
                 },
                 addRecipeItemRow() { this.recipeForm.items.unshift({ ingredientId: '', qty: '', unit: '' }); },
                 removeRecipeItemRow(idx) { this.recipeForm.items.splice(idx, 1); },
+                
+                openIngredientSelect(idx) {
+                    this.activeIngredientSelectIdx = idx;
+                    this.ingredientSelectSearch = '';
+                },
+                closeIngredientSelect() {
+                    this.activeIngredientSelectIdx = null;
+                },
+                selectIngredientForItem(idx, ingredientId) {
+                    this.recipeForm.items[idx].ingredientId = ingredientId;
+                    this.handleIngredientChange(this.recipeForm.items[idx]);
+                    this.closeIngredientSelect();
+                },
                 
                 handleIngredientChange(item) {
                     if (item.ingredientId && item.ingredientId.startsWith('recipe_')) {
