@@ -71,6 +71,67 @@
             </div>
         </transition>
 
+        <!-- FULL SCREEN MODAL: PILIH BAHAN BAKU (BEBAS DARI MODAL LAIN) -->
+        <transition name="toast-slide">
+            <div v-if="activeIngredientSelectIdx !== null" class="fixed inset-0 z-[120] bg-slate-900/90 backdrop-blur-md flex flex-col h-[100dvh] w-full overflow-hidden">
+                <div class="bg-white dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm pt-safe">
+                    <div class="flex items-center gap-3">
+                        <button type="button" @click="closeIngredientSelect" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                            <i class="fa-solid fa-arrow-left text-base"></i>
+                        </button>
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-white text-base">Pilih Bahan Baku</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Pilih bahan mentah atau sub-resep (prep)</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="closeIngredientSelect" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1">
+                        Batal
+                    </button>
+                </div>
+
+                <div class="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-inner">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input v-model="ingredientSelectSearch" type="text" placeholder="Cari nama bahan, merk, atau sub-resep..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm font-medium" autofocus>
+                        <button v-if="ingredientSelectSearch" @click="ingredientSelectSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 space-y-4 pb-safe">
+                    <div v-if="filteredGroupedIngredientsOptions.length === 0" class="text-center py-12 text-slate-400 italic">
+                        <i class="fa-solid fa-box-open text-3xl mb-2 block"></i>
+                        Bahan baku tidak ditemukan.
+                    </div>
+
+                    <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label" class="space-y-2">
+                        <div class="px-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-[10px]"></i> {{ group.label }}
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60 shadow-sm overflow-hidden">
+                            <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(activeIngredientSelectIdx, ing.id)" class="px-4 py-3 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 cursor-pointer flex items-center justify-between transition-colors" :class="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold' : ''">
+                                <div class="flex-1 min-w-0 pr-3">
+                                    <div class="text-sm text-slate-800 dark:text-slate-100 truncate font-semibold">
+                                        {{ ing.name }}
+                                    </div>
+                                    <div v-if="ing.brand" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                        Merk: {{ ing.brand }}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span v-if="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id" class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Terpilih
+                                    </span>
+                                    <i v-else class="fa-solid fa-chevron-right text-xs text-slate-300 dark:text-slate-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
         <!-- APP MAIN WRAPPER (HIDDEN WHEN PRINTING) -->
         <div class="print:hidden h-full">
             <!-- AUTH CONTAINER -->
@@ -110,7 +171,7 @@
                         </form>
                     </div>
                 </div>
-                
+
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
                     <p class="text-[9px] font-mono mt-0.5">v8.5.0 (BEP & Impact Analysis)</p>
@@ -222,7 +283,7 @@
                                 </div>
                             </div>
 
-                            <!-- NEW: FITUR SIMULASI TARGET PENJUALAN (BEP) -->
+                            <!-- SIMULASI TARGET PENJUALAN (BEP) -->
                             <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
                                 <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-2">
                                     <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
@@ -404,7 +465,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Financial Specs Grid (Tergantung Tipe) -->
+                                    <!-- Financial Specs Grid -->
                                     <template v-if="!isKitchenMode">
                                         <div v-if="recipe.type === 'menu'" class="grid grid-cols-2 gap-2 pt-1 text-xs">
                                             <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 relative">
@@ -416,13 +477,13 @@
                                             <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border relative overflow-hidden"
                                                  :class="formatMargin(recipe) < targetMargin ? 'border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10' : 'border-emerald-100 dark:border-emerald-800/50'">
                                                 
-                                                <!-- IMPACT ANALYSIS WARNING BADGE -->
+                                                <!-- WARNING BADGE MARGIN TIPIS -->
                                                 <div class="absolute top-0 right-0 text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg transition-colors"
                                                      :class="formatMargin(recipe) < targetMargin ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse' : 'bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100'">
                                                     Mrg {{ formatMargin(recipe) }}%
                                                 </div>
                                                 
-                                                <span v-if="formatMargin(recipe) < targetMargin" class="text-red-600 dark:text-red-400 text-[8px] block font-bold uppercase tracking-tight mt-1"><i class="fa-solid fa-triangle-exclamation"></i> MARGIN TIPIS (DI BAWAH {{targetMargin}}%)</span>
+                                                <span v-if="formatMargin(recipe) < targetMargin" class="text-red-600 dark:text-red-400 text-[8px] block font-bold uppercase tracking-tight mt-1"><i class="fa-solid fa-triangle-exclamation"></i> MARGIN TIPIS (&lt;{{targetMargin}}%)</span>
                                                 <span v-else class="text-emerald-700 dark:text-emerald-400 text-[9px] block font-bold uppercase tracking-tight mt-1">JUAL DASAR TOKO</span>
                                                 
                                                 <span class="font-bold text-sm font-mono tracking-tight" :class="formatMargin(recipe) < targetMargin ? 'text-red-700 dark:text-red-300' : 'text-emerald-800 dark:text-emerald-300'">Rp {{ formatNumber(calculateBasePrice(recipe)) }}</span>
@@ -443,7 +504,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Multiple Platform Calculation Display (Hanya untuk Menu) -->
+                                        <!-- Platform Fee Calculation -->
                                         <div v-if="recipe.type === 'menu' && platforms.length > 0" class="pt-2 border-t border-slate-100 dark:border-slate-700">
                                             <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2"><i class="fa-solid fa-motorcycle mr-1"></i> Harga Jual Platform</div>
                                             <div class="grid grid-cols-3 gap-2">
@@ -457,7 +518,6 @@
                                     </template>
                                     
                                     <template v-else>
-                                        <!-- HANYA TAMPILKAN HARGA JUAL DI KITCHEN MODE (JIKA TIPE MENU) -->
                                         <div v-if="recipe.type === 'menu'" class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-right">
                                             <span class="text-[11px] font-bold font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 inline-block shadow-sm">
                                                 <i class="fa-solid fa-tag mr-1 text-emerald-500"></i> Harga Jual: Rp {{ formatNumber(calculateBasePrice(recipe)) }}
@@ -524,7 +584,6 @@
                                     <div class="flex justify-between items-end pt-1">
                                         <div>
                                             <div class="text-[10px] text-slate-400">Supplier: <span class="font-medium text-slate-600 dark:text-slate-300">{{ getSupplierName(ing.supplierId) }}</span></div>
-                                            <!-- NEW: TIMESTAMP DISPLAY IN INGREDIENTS LIST -->
                                             <div class="text-[9px] text-slate-400 mt-0.5 italic">
                                                 <i class="fa-regular fa-clock text-[8px] mr-0.5"></i> Diubah: {{ formatDate(ing.updatedAt) }}
                                             </div>
@@ -586,7 +645,6 @@
 
                 <!-- Bottom Navigation Bar -->
                 <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border-t border-slate-200 dark:border-slate-800 z-30 pb-safe transition-colors">
-                    <!-- Nav FULL Jika Admin -->
                     <div v-if="!isKitchenMode" class="max-w-5xl mx-auto flex justify-around">
                         <button @click="currentTab = 'dashboard'" :class="currentTab === 'dashboard' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-2.5 px-3 text-center flex-1 transition-all duration-200">
                             <i class="fa-solid fa-chart-pie text-lg block mx-auto mb-1" :class="currentTab === 'dashboard' ? 'scale-110' : ''"></i>
@@ -606,7 +664,6 @@
                         </button>
                     </div>
                     
-                    <!-- Nav SIMPLE Jika Mode Dapur -->
                     <div v-else class="max-w-5xl mx-auto flex justify-around">
                         <button @click="currentTab = 'recipes'" :class="currentTab === 'recipes' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-3 px-3 text-center flex-1 transition-all duration-200">
                             <i class="fa-solid fa-utensils text-2xl block mx-auto mb-1" :class="currentTab === 'recipes' ? 'scale-110' : ''"></i>
@@ -687,22 +744,14 @@
                                     <div v-for="(item, idx) in recipeForm.items" :key="'item-'+idx" class="flex flex-col gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative group mb-3" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10' : ''">
                                         <button type="button" @click="removeRecipeItemRow(idx)" class="absolute right-2 top-2 text-slate-300 hover:text-red-500 dark:bg-slate-800 bg-white rounded-full p-1 transition-colors z-10"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
 
-                                        <!-- Select Ingredient - DIPERBARUI UNTUK SEARCH -->
+                                        <!-- Select Ingredient Button -->
                                         <div class="w-full pr-8">
                                             <label class="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Pilih Bahan Baku / Sub-Resep</label>
                                             
-                                            <!-- Fitur Search di Dropdown Bahan Baku (Custom Select) -->
-                                            <div class="relative">
-                                                <div @click="openIngredientSelect(idx)" class="w-full px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
-                                                    <span>{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
-                                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
-                                                </div>
-                                                
-                                                /div>
+                                            <div @click="openIngredientSelect(idx)" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center hover:bg-amber-50/50 transition-colors" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
+                                                <span class="truncate">{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
+                                                <i class="fa-solid fa-chevron-right text-xs text-slate-400 ml-2"></i>
                                             </div>
-                                            
-                                            <!-- Backdrop Overlay untuk menutup Dropdown Search -->
-                                            <div v-if="activeIngredientSelectIdx === idx" @click="closeIngredientSelect" class="fixed inset-0 z-40"></div>
                                         </div>
                                         
                                         <!-- Qty & Unit & Cost Row -->
@@ -948,7 +997,7 @@
                                 </div>
                             </div>
                             
-                            <!-- NEW: PENGATURAN TARGET FINANSIAL (BEP & MARGIN) -->
+                            <!-- PENGATURAN TARGET FINANSIAL (BEP & MARGIN) -->
                             <hr class="border-slate-100 dark:border-slate-700">
                             <div class="space-y-3">
                                 <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-chart-line text-slate-400 mr-1"></i> Target Finansial & BEP</label>
@@ -1047,68 +1096,6 @@
                         <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
                             <i class="fa-solid fa-lock"></i>
                         </div>
-
-        <!-- FULL SCREEN MODAL: PILIH BAHAN BAKU -->
-        <transition name="toast-slide">
-            <div v-if="activeIngredientSelectIdx !== null" class="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex flex-col h-[100dvh] w-full overflow-hidden">
-                <div class="bg-white dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm pt-safe">
-                    <div class="flex items-center gap-3">
-                        <button type="button" @click="closeIngredientSelect" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                            <i class="fa-solid fa-arrow-left text-base"></i>
-                        </button>
-                        <div>
-                            <h3 class="font-bold text-slate-800 dark:text-white text-base">Pilih Bahan Baku</h3>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Pilih bahan baku atau sub-resep untuk komposisi</p>
-                        </div>
-                    </div>
-                    <button type="button" @click="closeIngredientSelect" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1">
-                        Batal
-                    </button>
-                </div>
-
-                <div class="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-inner">
-                    <div class="relative">
-                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
-                        <input v-model="ingredientSelectSearch" type="text" placeholder="Cari nama bahan, merk, atau sub-resep..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm font-medium" autofocus>
-                        <button v-if="ingredientSelectSearch" @click="ingredientSelectSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
-                            <i class="fa-solid fa-xmark text-sm"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 space-y-4 pb-safe">
-                    <div v-if="filteredGroupedIngredientsOptions.length === 0" class="text-center py-12 text-slate-400 italic">
-                        <i class="fa-solid fa-box-open text-3xl mb-2 block"></i>
-                        Bahan baku tidak ditemukan.
-                    </div>
-
-                    <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label" class="space-y-2">
-                        <div class="px-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-layer-group text-[10px]"></i> {{ group.label }}
-                        </div>
-                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60 shadow-sm overflow-hidden">
-                            <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(activeIngredientSelectIdx, ing.id)" class="px-4 py-3 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 cursor-pointer flex items-center justify-between transition-colors" :class="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold' : ''">
-                                <div class="flex-1 min-w-0 pr-3">
-                                    <div class="text-sm text-slate-800 dark:text-slate-100 truncate font-semibold">
-                                        {{ ing.name }}
-                                    </div>
-                                    <div v-if="ing.brand" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                                        Merk: {{ ing.brand }}
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span v-if="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id" class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <i class="fa-solid fa-check text-[10px]"></i> Terpilih
-                                    </span>
-                                    <i v-else class="fa-solid fa-chevron-right text-xs text-slate-300 dark:text-slate-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </transition>
-
                         <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-1">Buka Kunci Dapur</h3>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Masukkan 4 digit PIN Owner</p>
                         
@@ -1130,7 +1117,7 @@
             </div>
         </div>
 
-        <!-- AREA PRINT KHUSUS (HANYA TERLIHAT SAAT PRINT) -->
+        <!-- AREA PRINT KHUSUS -->
         <div v-if="recipeToPrint" class="hidden print:block w-full bg-white text-black p-4 z-[200]">
             <div class="text-center border-b-2 border-black pb-4 mb-4">
                 <h1 class="text-2xl font-extrabold uppercase">{{ storeName }}</h1>
@@ -1244,7 +1231,7 @@
                     ingredients: [],
                     recipes: [],
                     
-                    // User Settings (Termasuk Finansial Target)
+                    // User Settings
                     storeName: 'Kedai Paradise',
                     isDarkMode: false,
                     fixedCost: 3000000,
@@ -1311,7 +1298,6 @@
                     return { totalMenu, totalPrep, totalIngredients, avgMargin, topRecipes };
                 },
                 
-                // KALKULASI BEP (Break-Even Point)
                 bepStats() {
                     const menus = this.normalizedRecipes.filter(r => r.type === 'menu');
                     if (menus.length === 0) return { avgProfit: 0, targetPorsiBulan: 0, targetPorsiHari: 0, targetOmset: 0 };
@@ -1459,7 +1445,6 @@
                 if(savedDark) this.isDarkMode = savedDark === 'true';
                 else this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 
-                // Network Listeners dengan Toast Logic
                 window.addEventListener('online', () => {
                     this.isOnline = true;
                     this.showOnlineToast = true;
