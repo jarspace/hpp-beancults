@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HPP & COGS Calculator Pro - F&B Master</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- External Firebase Config Loader -->
+    <script src="firebase-config.js" onerror="console.log('File firebase-config.js tidak ditemukan, menggunakan config internal bawaan.')"></script>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22HPP%20Master%20Pro%22,%22short_name%22:%22HPP%20Pro%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%230f172a%22,%22icons%22:[{%22src%22:%22data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjZjU5ZTBiIiBkPSJNMjU2IDUxMmMxNDEuNCAwIDI1Ni0xMTQuNiAyNTYtMjU2UzM5Ny40IDAgMjU2IDAgMCAxMTQuNiAwIDI1NiAxMTQuNiA1MTIgMjU2IDUxMnoiLz48L3N2Zz4=%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22},{%22src%22:%22data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjZjU5ZTBiIiBkPSJNMjU2IDUxMmMxNDEuNCAwIDI1Ni0xMTQuNiAyNTYtMjU2UzM5Ny40IDAgMjU2IDAgMCAxMTQuNiAwIDI1NiAxMTQuNiA1MTIgMjU2IDUxMnoiLz48L3N2Zz4=%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}">
+    <!-- iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HPP Pro">
+    
+    <style>
+        [v-cloak] { display: none !important; }
+        body { -webkit-tap-highlight-color: transparent; transition: background-color 0.3s, color 0.3s; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 4.5rem); }
+        .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+        .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(10px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Network Toast Animation */
+        .toast-slide-enter-active, .toast-slide-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toast-slide-enter-from, .toast-slide-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+
+        /* Kitchen Mode Anim */
+        @keyframes pulse-border {
+            0% { border-color: rgba(245, 158, 11, 0.2); }
+            50% { border-color: rgba(245, 158, 11, 0.8); }
+            100% { border-color: rgba(245, 158, 11, 0.2); }
+        }
+        .kitchen-active { border-top: 3px solid; animation: pulse-border 2s infinite; }
+
+        /* Print Specific Styles */
+        @media print {
+            body { background: white !important; color: black !important; margin: 0; padding: 0; }
+            @page { margin: 1cm; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans min-h-screen print:bg-white">
+    <div id="app" v-cloak :class="isKitchenMode ? 'kitchen-active border-amber-500' : ''">
+        
+        <!-- GLOBAL NETWORK INDICATOR -->
+        <transition name="toast-slide">
+            <div v-if="!isOnline" class="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-600/90 backdrop-blur-sm text-white px-5 py-2.5 rounded-full shadow-lg shadow-red-900/20 text-xs font-bold flex items-center gap-2 border border-red-500 print:hidden">
+                <i class="fa-solid fa-wifi-slash animate-pulse"></i> Mode Offline
+            </div>
+            <div v-else-if="showOnlineToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] bg-emerald-600/90 backdrop-blur-sm text-white px-5 py-2.5 rounded-full shadow-lg shadow-emerald-900/20 text-xs font-bold flex items-center gap-2 border border-emerald-500 print:hidden">
+                <i class="fa-solid fa-wifi"></i> Kembali Online
+            </div>
+        </transition>
+
+        <!-- FULL SCREEN MODAL: PILIH BAHAN BAKU -->
+                <transition name="toast-slide">
+                    <div v-if="activeIngredientSelectIdx !== null" class="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex flex-col h-[100dvh] w-full overflow-hidden">
+                        <div class="bg-white dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm pt-safe">
+                            <div class="flex items-center gap-3">
+                                <button type="button" @click="closeIngredientSelect" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                                    <i class="fa-solid fa-arrow-left text-base"></i>
+                                </button>
+                                <div>
+                                    <h3 class="font-bold text-slate-800 dark:text-white text-base">Pilih Bahan Baku</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Pilih bahan baku atau sub-resep untuk komposisi</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="closeIngredientSelect" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1">
+                                Batal
+                            </button>
+                        </div>
+
+                        <div class="p-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-inner">
+                            <div class="relative">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                                <input v-model="ingredientSelectSearch" type="text" placeholder="Cari nama bahan, merk, atau sub-resep..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm font-medium" autofocus>
+                                <button v-if="ingredientSelectSearch" @click="ingredientSelectSearch = ''" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 space-y-4 pb-safe">
+                            <div v-if="filteredGroupedIngredientsOptions.length === 0" class="text-center py-12 text-slate-400 italic">
+                                <i class="fa-solid fa-box-open text-3xl mb-2 block"></i>
+                                Bahan baku tidak ditemukan.
+                            </div>
+
+                            <div v-for="group in filteredGroupedIngredientsOptions" :key="group.label" class="space-y-2">
+                                <div class="px-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-layer-group text-[10px]"></i> {{ group.label }}
+                                </div>
+                                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/60 shadow-sm overflow-hidden">
+                                    <div v-for="ing in group.items" :key="ing.id" @click="selectIngredientForItem(activeIngredientSelectIdx, ing.id)" class="px-4 py-3 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 cursor-pointer flex items-center justify-between transition-colors" :class="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id ? 'bg-amber-50 dark:bg-amber-900/20 font-bold' : ''">
+                                        <div class="flex-1 min-w-0 pr-3">
+                                            <div class="text-sm text-slate-800 dark:text-slate-100 truncate font-semibold">
+                                                {{ ing.name }}
+                                            </div>
+                                            <div v-if="ing.brand" class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                                Merk: {{ ing.brand }}
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span v-if="recipeForm.items[activeIngredientSelectIdx]?.ingredientId === ing.id" class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                <i class="fa-solid fa-check text-[10px]"></i> Terpilih
+                                            </span>
+                                            <i v-else class="fa-solid fa-chevron-right text-xs text-slate-300 dark:text-slate-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+
+        <!-- APP MAIN WRAPPER (HIDDEN WHEN PRINTING) -->
+        <div class="print:hidden h-full">
+            <!-- AUTH CONTAINER -->
+            <div v-if="!user" class="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 dark:bg-slate-950 relative transition-colors">
+                <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden p-6 space-y-6 z-10 relative">
+                    <div class="text-center space-y-2">
+                        <div class="w-16 h-16 bg-amber-500 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg shadow-amber-500/30">
+                            <i class="fa-solid fa-store"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ storeName || 'HPP Master Pro' }}</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Sistem Kelola HPP & Harga Jual F&B</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex border-b border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                            <div class="flex-1 py-2 text-center border-amber-500 text-amber-600 border-b-2">Masuk ke Sistem</div>
+                        </div>
+
+                        <form @submit.prevent="handleAuth" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Email Operasional</label>
+                                <input v-model="authForm.email" type="email" required placeholder="misal: kedai@paradise.com" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm bg-slate-50 dark:bg-slate-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Kata Sandi</label>
+                                <input v-model="authForm.password" type="password" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm bg-slate-50 dark:bg-slate-900 dark:text-white">
+                            </div>
+                            
+                            <div v-if="authError" class="p-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-xs">
+                                {{ authError }}
+                            </div>
+
+                            <button type="submit" :disabled="loading" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-lg text-sm shadow-md transition flex items-center justify-center gap-2">
+                                <i v-if="loading" class="fa-solid fa-spinner animate-spin"></i>
+                                <span>Masuk Aplikasi</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
+                    <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.5.1 (BEP & Impact Analysis)</p>
+                </div>
+            </div>
+
+                
+
+            
+
+                
+
+                <!-- MAIN APP INTERFACE -->
+            <div v-else class="min-h-screen flex flex-col pb-24 relative">
+                
+                <!-- Header dengan Identitas Toko Utama -->
+                <header class="bg-slate-900 dark:bg-slate-950 text-white p-4 sticky top-0 z-30 shadow-md transition-colors border-b border-slate-800" :class="isKitchenMode ? 'border-b-amber-500' : ''">
+                    <div class="max-w-5xl mx-auto flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md shadow-amber-500/20">
+                                <i class="fa-solid fa-store"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h1 class="text-base sm:text-lg font-extrabold leading-tight tracking-wide text-amber-400 uppercase truncate max-w-[180px] sm:max-w-[320px]">
+                                        {{ storeName }}
+                                    </h1>
+                                    <span v-if="isKitchenMode" class="text-[9px] px-1.5 py-0.5 bg-amber-900/80 text-amber-300 rounded font-bold border border-amber-700 animate-pulse">KITCHEN</span>
+                                    <span v-else class="text-[9px] px-1.5 py-0.5 bg-slate-800 text-amber-300 rounded font-mono border border-slate-700">F&B</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 truncate max-w-[180px]">
+                                    <i class="fa-regular fa-envelope mr-1"></i>{{ user.email }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <!-- Tombol Lock / Unlock -->
+                            <button v-if="!isKitchenMode" @click="enableKitchenMode" class="text-xs text-amber-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-amber-900/30 border border-amber-700/50 flex items-center gap-1.5 shadow-sm transition-all hover:bg-amber-600 hover:border-amber-500">
+                                <i class="fa-solid fa-lock"></i>
+                                <span class="hidden sm:inline text-[11px] font-bold">Mode Dapur</span>
+                            </button>
+                            <button v-else @click="showPinModal = true" class="text-xs text-white px-2.5 py-1.5 rounded-lg bg-red-600 border border-red-500 flex items-center gap-1.5 shadow-sm transition-all hover:bg-red-500">
+                                <i class="fa-solid fa-unlock"></i>
+                                <span class="hidden sm:inline text-[11px] font-bold">Buka Akses</span>
+                            </button>
+
+                            <button v-if="!isKitchenMode" @click="showSettingsModal = true" class="text-xs text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 flex items-center gap-1.5 shadow-sm transition-all hover:border-amber-500">
+                                <i class="fa-solid fa-gear text-slate-400"></i>
+                            </button>
+                            <button v-if="!isKitchenMode" @click="logout" class="text-xs text-slate-300 hover:text-red-400 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 flex items-center gap-1.5 shadow-sm transition-all hover:border-red-500">
+                                <i class="fa-solid fa-power-off"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Main Content Area -->
+                <main class="flex-1 max-w-5xl w-full mx-auto p-4 space-y-4">
+
+                    <!-- TAB 0: DASHBOARD (TERKUNCI JIKA KITCHEN MODE) -->
+                    <section v-if="currentTab === 'dashboard'" class="space-y-5 animate-fade-in">
+                        <div v-if="isKitchenMode" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 mt-10">
+                            <i class="fa-solid fa-lock text-5xl mb-4 text-slate-300 dark:text-slate-600"></i>
+                            <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Dashboard Keuangan Terkunci</p>
+                            <p class="text-xs mt-1">Anda sedang berada di Mode Dapur (Hanya SOP/Resep).</p>
+                        </div>
+                        
+                        <template v-else>
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                <div>
+                                    <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-chart-pie text-amber-500"></i> Ikhtisar Toko
+                                    </h2>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Statistik performa resep, modal HPP, dan margin usaha Anda</p>
+                                </div>
+                            </div>
+
+                            <!-- Metrics Grid -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider">Menu Jualan</span>
+                                        <i class="fa-solid fa-utensils text-amber-500 text-lg"></i>
+                                    </div>
+                                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">{{ dashboardStats.totalMenu }}</div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider">Sub-Resep / Prep</span>
+                                        <i class="fa-solid fa-box-open text-indigo-500 text-lg"></i>
+                                    </div>
+                                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">{{ dashboardStats.totalPrep }}</div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider">Total Bahan</span>
+                                        <i class="fa-solid fa-cubes text-blue-500 text-lg"></i>
+                                    </div>
+                                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">{{ dashboardStats.totalIngredients }}</div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-help">
+                                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider">Rata-Rata Margin</span>
+                                        <i class="fa-solid fa-percent text-purple-500 text-lg"></i>
+                                    </div>
+                                    <div class="text-2xl font-extrabold font-mono" :class="dashboardStats.avgMargin < targetMargin ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'">{{ dashboardStats.avgMargin }}%</div>
+                                    
+                                    <!-- Tooltip jika margin di bawah target -->
+                                    <div v-if="dashboardStats.avgMargin < targetMargin" class="absolute bottom-0 left-0 right-0 bg-red-100 dark:bg-red-900/80 text-red-600 dark:text-red-200 text-[8px] font-bold text-center py-0.5 transform translate-y-full group-hover:translate-y-0 transition-transform">
+                                        Di Bawah Standar ({{targetMargin}}%)!
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- NEW: FITUR SIMULASI TARGET PENJUALAN (BEP) -->
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+                                <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-2">
+                                    <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-bullseye text-blue-500"></i> Target Penjualan & Simulasi BEP
+                                    </h3>
+                                    <button @click="showSettingsModal = true" class="text-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition-colors border border-slate-200 dark:border-slate-600">Edit Biaya Tetap</button>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                    <div class="sm:col-span-1 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-600">
+                                        <label class="block text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">BIAYA OPERASIONAL TETAP/BLN</label>
+                                        <div class="text-sm font-bold text-slate-800 dark:text-white font-mono flex items-center justify-between">
+                                            <span>Rp {{ formatNumber(fixedCost) }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="sm:col-span-3 grid grid-cols-3 gap-2">
+                                        <div class="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-800/50 flex flex-col justify-center items-center text-center">
+                                            <span class="text-[9px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-tight mb-0.5">Target Porsi / Bulan</span>
+                                            <span class="font-bold text-blue-900 dark:text-blue-200 text-lg font-mono leading-none">{{ formatNumber(bepStats.targetPorsiBulan) }} <span class="text-[10px] font-sans text-blue-600">prs</span></span>
+                                        </div>
+                                        <div class="bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center text-center relative">
+                                            <span class="text-[9px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-tight mb-0.5">Target Porsi / Hari</span>
+                                            <span class="font-bold text-indigo-900 dark:text-indigo-200 text-lg font-mono leading-none">{{ formatNumber(bepStats.targetPorsiHari) }} <span class="text-[10px] font-sans text-indigo-600">prs</span></span>
+                                        </div>
+                                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/50 flex flex-col justify-center items-center text-center">
+                                            <span class="text-[9px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-tight mb-0.5">Target Omset / Bulan</span>
+                                            <span class="font-bold text-emerald-900 dark:text-emerald-200 text-sm font-mono leading-none mt-1">Rp {{ formatNumber(bepStats.targetOmset) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p v-if="dashboardStats.totalMenu > 0" class="text-[9px] text-slate-500 dark:text-slate-400 text-center italic">
+                                    *Dihitung berdasarkan rata-rata profit bersih Rp {{ formatNumber(bepStats.avgProfit) }}/porsi dari {{ dashboardStats.totalMenu }} menu jualan aktif.
+                                </p>
+                            </div>
+
+                            <!-- Quick Action & Top Items -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="md:col-span-2 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+                                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-2">
+                                        <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5">
+                                            <i class="fa-solid fa-trophy text-amber-500"></i> Top Menu Profit Margin Tertinggi
+                                        </h3>
+                                        <button @click="currentTab = 'recipes'; recipeListTab = 'menu'" class="text-xs text-amber-600 dark:text-amber-400 font-semibold hover:underline">Lihat Semua &rarr;</button>
+                                    </div>
+
+                                    <div v-if="dashboardStats.topRecipes.length === 0" class="text-center py-6 text-xs text-slate-400 italic">
+                                        Belum ada data resep menu jualan.
+                                    </div>
+
+                                    <div v-else class="space-y-2">
+                                        <div v-for="(rec, idx) in dashboardStats.topRecipes" :key="rec.id" class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center bg-amber-500 text-white font-mono">
+                                                    {{ idx + 1 }}
+                                                </div>
+                                                <div>
+                                                    <div class="font-bold text-sm text-slate-900 dark:text-white">{{ rec.name }}</div>
+                                                    <div class="text-[10px] text-slate-500 dark:text-slate-400">HPP: Rp {{ formatNumber(calculateRecipeHPP(rec)) }} &bull; Jual: Rp {{ formatNumber(calculateBasePrice(rec)) }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded border border-emerald-200 dark:border-emerald-800">
+                                                    {{ formatMargin(rec) }}% Profit
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+                                    <h3 class="font-bold text-sm text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">
+                                        <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Aksi Cepat
+                                    </h3>
+                                    <div class="space-y-2">
+                                        <button @click="openRecipeModal(null, 'menu')" class="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition">
+                                            <i class="fa-solid fa-utensils"></i> Buat Menu Jualan
+                                        </button>
+                                        <button @click="openRecipeModal(null, 'prep')" class="w-full py-2.5 px-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition">
+                                            <i class="fa-solid fa-box-open"></i> Buat Sub-Resep (Prep)
+                                        </button>
+                                        <button @click="openIngredientModal()" class="w-full py-2.5 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition">
+                                            <i class="fa-solid fa-cubes"></i> Tambah Bahan Baku
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </section>
+                    
+                    <!-- TAB 1: RESEP -->
+                    <section v-if="currentTab === 'recipes'" class="space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ isKitchenMode ? 'Buku Resep & SOP Dapur' : 'Manajemen Resep' }}</h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Pemisahan Menu Jualan dan Bahan Setengah Jadi (Prep)</p>
+                            </div>
+                        </div>
+
+                        <!-- TOGGLE MENU VS PREP -->
+                        <div class="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl shadow-inner">
+                            <button @click="recipeListTab = 'menu'" :class="recipeListTab === 'menu' ? 'bg-white dark:bg-slate-600 shadow text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-2.5 text-sm rounded-lg transition-all flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-utensils"></i> Menu Jualan
+                            </button>
+                            <button @click="recipeListTab = 'prep'" :class="recipeListTab === 'prep' ? 'bg-white dark:bg-slate-600 shadow text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-2.5 text-sm rounded-lg transition-all flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-box-open"></i> Sub-Resep (Prep)
+                            </button>
+                        </div>
+
+                        <!-- Filter & Sort Bar (Recipes) -->
+                        <div class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap gap-2 text-xs items-center transition-colors">
+                            <div class="flex-1 min-w-[200px] relative">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
+                                <input v-model="recipeSearch" type="text" placeholder="Cari resep..." class="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none transition-all">
+                            </div>
+                            <select v-model="recipeCategoryFilter" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white">
+                                <option value="All">Semua Kategori</option>
+                                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                            </select>
+                            <button v-if="!isKitchenMode" @click="openRecipeModal(null, recipeListTab)" class="py-2 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold flex items-center gap-1 shadow-sm transition">
+                                <i class="fa-solid fa-plus"></i> Tambah {{ recipeListTab === 'menu' ? 'Menu' : 'Prep' }}
+                            </button>
+                        </div>
+
+                        <div v-if="filteredAndSortedRecipes.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
+                            <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+                            <p class="text-sm font-medium">Tidak ada {{ recipeListTab === 'menu' ? 'Menu Jualan' : 'Sub-Resep / Prep' }} ditemukan.</p>
+                        </div>
+
+                        <transition-group name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="recipe in filteredAndSortedRecipes" :key="recipe.id" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col hover:border-amber-200 dark:hover:border-amber-700 transition-colors" :class="recipe.type === 'prep' ? 'border-l-4 border-l-indigo-500' : (formatMargin(recipe) < targetMargin && recipe.type === 'menu' && !isKitchenMode ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-amber-500')">
+                                <div class="p-4 space-y-3 flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center flex-wrap gap-2 mb-1">
+                                                <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-[10px] font-bold tracking-wide uppercase">{{ recipe.category }}</span>
+                                                
+                                                <span v-if="recipe.type === 'prep'" class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 rounded text-[10px] font-bold tracking-wide uppercase border border-indigo-200 dark:border-indigo-800">
+                                                    <i class="fa-solid fa-box-open mr-0.5"></i> Prep / Batch ({{ recipe.yieldQty }} {{ recipe.yieldUnit }})
+                                                </span>
+                                            </div>
+                                            <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ recipe.name }}</h3>
+                                        </div>
+                                        
+                                        <!-- Actions: Print, Edit, Delete -->
+                                        <div class="flex bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                            <button @click="printSOP(recipe)" title="Cetak SOP Dapur" class="text-slate-500 hover:text-blue-600 px-2.5 py-1.5 text-sm border-r border-slate-200 dark:border-slate-700"><i class="fa-solid fa-print"></i></button>
+                                            <template v-if="!isKitchenMode">
+                                                <button @click="openRecipeModal(recipe, recipe.type)" class="text-slate-500 hover:text-amber-600 px-2.5 py-1.5 text-sm border-r border-slate-200 dark:border-slate-700"><i class="fa-solid fa-pen"></i></button>
+                                                <button @click="deleteRecipe(recipe.id)" class="text-slate-500 hover:text-red-600 px-2.5 py-1.5 text-sm"><i class="fa-solid fa-trash"></i></button>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dynamic Ingredients Summary dengan Pemisah Kemasan & Bahan Utama -->
+                                    <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-lg p-3 text-xs space-y-2.5 max-h-60 overflow-y-auto">
+                                        
+                                        <!-- KELOMPOK 1: BAHAN UTAMA & SUB-RESEP -->
+                                        <div>
+                                            <div class="text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1 pb-1 border-b border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                                                <i class="fa-solid fa-mortar-pestle text-[10px]"></i> Bahan Utama & Sub-Resep
+                                            </div>
+                                            <div v-if="getGroupedRecipeItems(recipe?.items).mainItems.length === 0" class="text-[10px] text-slate-400 italic py-1">Belum ada bahan utama.</div>
+                                            <div v-for="item in getGroupedRecipeItems(recipe?.items).mainItems" :key="'main-'+item.ingredientId" class="flex justify-between text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/50 last:border-0 py-1 items-center">
+                                                <div class="flex-1 min-w-0 pr-2">
+                                                    <span class="font-semibold text-sm" :class="item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400 font-bold' : ''">
+                                                        {{ getIngredientName(item.ingredientId) }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-700 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
+                                                        {{ item.qty }} {{ item.unit || getIngredientUnit(item.ingredientId) }}
+                                                    </span>
+                                                </div>
+                                                <span v-if="!isKitchenMode" class="font-mono font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap pl-3 w-20 text-right">Rp {{ formatNumber(calculateItemCost(item, [recipe.id])) }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- KELOMPOK 2: KEMASAN & BAHAN PENUNJANG -->
+                                        <div v-if="getGroupedRecipeItems(recipe?.items).packageItems.length > 0" class="pt-1">
+                                            <div class="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1 pb-1 border-b border-indigo-200 dark:border-indigo-800/50 flex items-center justify-between">
+                                                <span class="flex items-center gap-1"><i class="fa-solid fa-box-open text-[10px]"></i> Kemasan & Bahan Penunjang</span>
+                                                <span class="text-[8px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">Wadah / Packaging</span>
+                                            </div>
+                                            <div v-for="item in getGroupedRecipeItems(recipe?.items).packageItems" :key="'pkg-'+item.ingredientId" class="flex justify-between text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700/50 last:border-0 py-1 items-center">
+                                                <div class="flex-1 min-w-0 pr-2 flex items-center gap-1.5">
+                                                    <span class="font-medium text-sm text-indigo-950 dark:text-indigo-200">
+                                                        {{ getIngredientName(item.ingredientId) }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="font-bold text-indigo-900 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded shadow-sm border border-indigo-200 dark:border-indigo-700">
+                                                        {{ item.qty }} {{ item.unit || getIngredientUnit(item.ingredientId) }}
+                                                    </span>
+                                                </div>
+                                                <span v-if="!isKitchenMode" class="font-mono font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap pl-3 w-20 text-right">Rp {{ formatNumber(calculateItemCost(item, [recipe.id])) }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div v-if="!isKitchenMode && recipe.overheadCost > 0" class="flex justify-between text-slate-500 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-600 pt-1.5 mt-1.5">
+                                            <div class="flex-1">
+                                                <span class="font-medium text-[11px]"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Overhead Ops (Gas/Listrik/Lainnya)</span>
+                                            </div>
+                                            <span class="font-mono font-medium whitespace-nowrap pl-2">+ Rp {{ formatNumber(recipe.overheadCost) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Financial Specs Grid (Tergantung Tipe) -->
+                                    <template v-if="!isKitchenMode">
+                                        <div v-if="recipe.type === 'menu'" class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                                            <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 relative">
+                                                <span class="text-slate-500 dark:text-slate-400 text-[9px] block font-bold uppercase tracking-tight truncate">
+                                                    MODAL HPP (1 PORSI)
+                                                </span>
+                                                <span class="font-bold text-slate-900 dark:text-white text-sm font-mono tracking-tight">Rp {{ formatNumber(calculateRecipeHPP(recipe)) }}</span>
+                                            </div>
+                                            <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border relative overflow-hidden"
+                                                 :class="formatMargin(recipe) < targetMargin ? 'border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10' : 'border-emerald-100 dark:border-emerald-800/50'">
+                                                
+                                                <!-- IMPACT ANALYSIS WARNING BADGE -->
+                                                <div class="absolute top-0 right-0 text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg transition-colors"
+                                                     :class="formatMargin(recipe) < targetMargin ? 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse' : 'bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100'">
+                                                    Mrg {{ formatMargin(recipe) }}%
+                                                </div>
+                                                
+                                                <span v-if="formatMargin(recipe) < targetMargin" class="text-red-600 dark:text-red-400 text-[8px] block font-bold uppercase tracking-tight mt-1"><i class="fa-solid fa-triangle-exclamation"></i> MARGIN TIPIS (DI BAWAH {{targetMargin}}%)</span>
+                                                <span v-else class="text-emerald-700 dark:text-emerald-400 text-[9px] block font-bold uppercase tracking-tight mt-1">JUAL DASAR TOKO</span>
+                                                
+                                                <span class="font-bold text-sm font-mono tracking-tight" :class="formatMargin(recipe) < targetMargin ? 'text-red-700 dark:text-red-300' : 'text-emerald-800 dark:text-emerald-300'">Rp {{ formatNumber(calculateBasePrice(recipe)) }}</span>
+                                            </div>
+                                        </div>
+                                        <div v-else class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                                            <div class="bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
+                                                <span class="text-indigo-700 dark:text-indigo-400 text-[9px] block font-bold uppercase tracking-tight truncate">
+                                                    MODAL 1 BATCH ({{ recipe.yieldQty }} {{ recipe.yieldUnit }})
+                                                </span>
+                                                <span class="font-bold text-indigo-900 dark:text-indigo-300 text-sm font-mono tracking-tight">Rp {{ formatNumber(calculateRecipeHPP(recipe)) }}</span>
+                                            </div>
+                                            <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                <span class="text-slate-500 dark:text-slate-400 text-[9px] block font-bold uppercase tracking-tight truncate">
+                                                    HPP PER {{ String(recipe.yieldUnit).toUpperCase() }}
+                                                </span>
+                                                <span class="font-bold text-slate-900 dark:text-white text-sm font-mono tracking-tight">Rp {{ formatNumber(calculateRecipeHPP(recipe) / (recipe.yieldQty || 1)) }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Multiple Platform Calculation Display (Hanya untuk Menu) -->
+                                        <div v-if="recipe.type === 'menu' && platforms.length > 0" class="pt-2 border-t border-slate-100 dark:border-slate-700">
+                                            <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2"><i class="fa-solid fa-motorcycle mr-1"></i> Harga Jual Platform</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="plat in platforms" :key="plat.name" class="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/50 rounded-lg p-2 text-center shadow-sm">
+                                                    <div class="text-[9px] font-bold text-orange-800 dark:text-orange-400 uppercase tracking-tight truncate">{{ plat.name }}</div>
+                                                    <div class="text-[8px] text-orange-600 dark:text-orange-500 mb-0.5">Pot {{ plat.fee }}%</div>
+                                                    <div class="font-mono font-bold text-orange-900 dark:text-orange-300 text-[10px]">Rp{{ formatNumber(calculatePlatformSpecificPrice(recipe, plat.fee)) }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    
+                                    <template v-else>
+                                        <!-- HANYA TAMPILKAN HARGA JUAL DI KITCHEN MODE (JIKA TIPE MENU) -->
+                                        <div v-if="recipe.type === 'menu'" class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-right">
+                                            <span class="text-[11px] font-bold font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 inline-block shadow-sm">
+                                                <i class="fa-solid fa-tag mr-1 text-emerald-500"></i> Harga Jual: Rp {{ formatNumber(calculateBasePrice(recipe)) }}
+                                            </span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </transition-group>
+                    </section>
+
+                    <!-- TAB 2: BAHAN BAKU -->
+                    <section v-if="currentTab === 'ingredients'" class="space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Database Bahan Baku</h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ isKitchenMode ? 'Daftar stok tersedia di gudang/kulkas' : 'Kelola master bahan mentah & vendor' }}</p>
+                            </div>
+                            <button v-if="!isKitchenMode" @click="openIngredientModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md w-full sm:w-auto justify-center transition-colors">
+                                <i class="fa-solid fa-plus"></i> Tambah Bahan Baku
+                            </button>
+                        </div>
+
+                        <!-- Filter & Sort Bar (Ingredients) -->
+                        <div class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap gap-2 text-xs items-center">
+                            <div class="flex-1 min-w-[200px] relative">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
+                                <input v-model="ingredientSearch" type="text" placeholder="Cari nama bahan / brand..." class="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none transition-all">
+                            </div>
+                            <select v-model="ingredientSupplierFilter" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white max-w-[150px]">
+                                <option value="All">Semua Supplier</option>
+                                <option v-for="sup in suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}</option>
+                            </select>
+                            <select v-model="ingredientSort" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-medium">
+                                <option value="name_asc">A-Z Nama</option>
+                                <option value="name_desc">Z-A Nama</option>
+                                <option value="brand_asc">A-Z Brand</option>
+                                <option value="date_desc">Terbaru Diubah</option>
+                            </select>
+                        </div>
+
+                        <div v-if="filteredAndSortedIngredients.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
+                            <i class="fa-solid fa-cubes text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+                            <p class="text-sm font-medium">Tidak ada bahan baku ditemukan.</p>
+                        </div>
+
+                        <transition-group name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div v-for="ing in filteredAndSortedIngredients" :key="ing.id" class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-start gap-2 hover:border-amber-200 transition-colors">
+                                <div class="space-y-1.5 flex-1">
+                                    <div class="flex items-center flex-wrap gap-2">
+                                        <h3 class="font-bold text-slate-900 dark:text-white text-base leading-none">{{ ing.name }}</h3>
+                                        <span v-if="ing.brand" class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-[10px] font-medium border border-slate-200 dark:border-slate-600">{{ ing.brand }}</span>
+                                    </div>
+                                    
+                                    <div class="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded inline-block w-full border border-slate-100 dark:border-slate-700">
+                                        <div class="grid grid-cols-2 gap-1">
+                                            <div v-if="!isKitchenMode">Beli: <span class="font-mono text-slate-800 dark:text-slate-200">Rp {{ formatNumber(ing.buyPrice) }} / {{ ing.buyQty }}{{ ing.unit }}</span></div>
+                                            <div v-else>Satuan Datang: <span class="font-mono text-slate-800 dark:text-slate-200">{{ ing.buyQty }}{{ ing.unit }}</span></div>
+                                            
+                                            <div>Yield: <span class="font-mono text-slate-800 dark:text-slate-200">{{ ing.yieldPercent }}%</span> <span v-if="ing.category">({{ ing.category }})</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-end pt-1">
+                                        <div>
+                                            <div class="text-[10px] text-slate-400">Supplier: <span class="font-medium text-slate-600 dark:text-slate-300">{{ getSupplierName(ing.supplierId) }}</span></div>
+                                            <!-- NEW: TIMESTAMP DISPLAY IN INGREDIENTS LIST -->
+                                            <div class="text-[9px] text-slate-400 mt-0.5 italic">
+                                                <i class="fa-regular fa-clock text-[8px] mr-0.5"></i> Diubah: {{ formatDate(ing.updatedAt) }}
+                                            </div>
+                                        </div>
+                                        <div v-if="!isKitchenMode" class="text-xs font-bold text-amber-800 dark:text-amber-300 font-mono bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded shadow-sm border border-amber-200 dark:border-amber-800/50">
+                                            HPP/{{ ing.unit }}: Rp {{ formatNumber(calculateNetUnitPrice(ing)) }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="!isKitchenMode" class="flex flex-col bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-sm">
+                                    <button @click="openIngredientModal(ing)" class="text-slate-500 hover:text-amber-600 p-2 text-sm border-b border-slate-200 dark:border-slate-700"><i class="fa-solid fa-pen"></i></button>
+                                    <button @click="deleteIngredient(ing.id)" class="text-slate-500 hover:text-red-600 p-2 text-sm"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </transition-group>
+                    </section>
+
+                    <!-- TAB 3: SUPPLIERS (TERKUNCI DI KITCHEN MODE) -->
+                    <section v-if="currentTab === 'suppliers'" class="space-y-4">
+                        <div v-if="isKitchenMode" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 mt-10">
+                            <i class="fa-solid fa-truck-field text-5xl mb-4 text-slate-300 dark:text-slate-600"></i>
+                            <p class="text-sm font-bold text-slate-600 dark:text-slate-300">Data Supplier Terkunci</p>
+                            <p class="text-xs mt-1">Anda sedang berada di Mode Dapur.</p>
+                        </div>
+
+                        <template v-else>
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
+                                <div>
+                                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Daftar Supplier / Toko</h2>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Database vendor langganan</p>
+                                </div>
+                                <button @click="openSupplierModal()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md w-full sm:w-auto justify-center transition-colors">
+                                    <i class="fa-solid fa-plus"></i> Tambah Supplier
+                                </button>
+                            </div>
+
+                            <div v-if="suppliers.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
+                                <i class="fa-solid fa-truck-field text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+                                <p class="text-sm font-medium">Belum ada supplier.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div v-for="sup in sortedSuppliers" :key="sup.id" class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-start hover:border-amber-200 transition-colors">
+                                    <div class="space-y-1.5">
+                                        <h3 class="font-bold text-slate-900 dark:text-white text-base">{{ sup.name }}</h3>
+                                        <p v-if="sup.phone" class="text-xs text-slate-600 dark:text-slate-400 font-mono"><i class="fa-brands fa-whatsapp text-green-500 w-4 text-center"></i> {{ sup.phone }}</p>
+                                        <p v-if="sup.address" class="text-xs text-slate-500 dark:text-slate-400"><i class="fa-solid fa-location-dot text-slate-400 w-4 text-center"></i> {{ sup.address }}</p>
+                                    </div>
+                                    <div class="flex gap-1 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-sm">
+                                        <button @click="openSupplierModal(sup)" class="text-slate-500 hover:text-amber-600 px-2 py-1.5 text-sm border-r border-slate-200 dark:border-slate-700"><i class="fa-solid fa-pen"></i></button>
+                                        <button @click="deleteSupplier(sup.id)" class="text-slate-500 hover:text-red-600 px-2 py-1.5 text-sm"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </section>
+                    
+                </main>
+
+                <!-- Bottom Navigation Bar -->
+                <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border-t border-slate-200 dark:border-slate-800 z-30 pb-safe transition-colors">
+                    <!-- Nav FULL Jika Admin -->
+                    <div v-if="!isKitchenMode" class="max-w-5xl mx-auto flex justify-around">
+                        <button @click="currentTab = 'dashboard'" :class="currentTab === 'dashboard' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-2.5 px-3 text-center flex-1 transition-all duration-200">
+                            <i class="fa-solid fa-chart-pie text-lg block mx-auto mb-1" :class="currentTab === 'dashboard' ? 'scale-110' : ''"></i>
+                            <span class="text-[10px] block uppercase tracking-wide">Dashboard</span>
+                        </button>
+                        <button @click="currentTab = 'recipes'" :class="currentTab === 'recipes' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-2.5 px-3 text-center flex-1 transition-all duration-200 border-l border-slate-100 dark:border-slate-800">
+                            <i class="fa-solid fa-utensils text-lg block mx-auto mb-1" :class="currentTab === 'recipes' ? 'scale-110' : ''"></i>
+                            <span class="text-[10px] block uppercase tracking-wide">Resep</span>
+                        </button>
+                        <button @click="currentTab = 'ingredients'" :class="currentTab === 'ingredients' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-2.5 px-3 text-center flex-1 transition-all duration-200 border-l border-r border-slate-100 dark:border-slate-800">
+                            <i class="fa-solid fa-cubes-stacked text-lg block mx-auto mb-1" :class="currentTab === 'ingredients' ? 'scale-110' : ''"></i>
+                            <span class="text-[10px] block uppercase tracking-wide">Bahan</span>
+                        </button>
+                        <button @click="currentTab = 'suppliers'" :class="currentTab === 'suppliers' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-2.5 px-3 text-center flex-1 transition-all duration-200">
+                            <i class="fa-solid fa-truck-field text-lg block mx-auto mb-1" :class="currentTab === 'suppliers' ? 'scale-110' : ''"></i>
+                            <span class="text-[10px] block uppercase tracking-wide">Supplier</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Nav SIMPLE Jika Mode Dapur -->
+                    <div v-else class="max-w-5xl mx-auto flex justify-around">
+                        <button @click="currentTab = 'recipes'" :class="currentTab === 'recipes' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-3 px-3 text-center flex-1 transition-all duration-200">
+                            <i class="fa-solid fa-utensils text-2xl block mx-auto mb-1" :class="currentTab === 'recipes' ? 'scale-110' : ''"></i>
+                            <span class="text-[11px] block uppercase tracking-wide font-bold">Buku Resep & SOP</span>
+                        </button>
+                        <button @click="currentTab = 'ingredients'" :class="currentTab === 'ingredients' ? 'text-amber-600 font-bold bg-amber-50/50 dark:bg-amber-900/20 border-t-2 border-amber-500' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white border-t-2 border-transparent'" class="py-3 px-3 text-center flex-1 transition-all duration-200 border-l border-slate-100 dark:border-slate-800">
+                            <i class="fa-solid fa-cubes-stacked text-2xl block mx-auto mb-1" :class="currentTab === 'ingredients' ? 'scale-110' : ''"></i>
+                            <span class="text-[11px] block uppercase tracking-wide font-bold">Cek Stok Bahan</span>
+                        </button>
+                    </div>
+                </nav>
+
+                <!-- MODAL: RECIPE & PREP -->
+                <div v-if="showRecipeModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
+                    <div class="bg-slate-50 dark:bg-slate-900 w-full h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:max-w-xl flex flex-col shadow-xl overflow-hidden animate-fade-in-up">
+                        <div class="bg-white dark:bg-slate-800 flex justify-between items-center border-b border-slate-200 dark:border-slate-700 p-4 shrink-0 z-10 transition-colors">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-lg">
+                                <i :class="recipeForm.type === 'prep' ? 'fa-solid fa-box-open text-indigo-500' : 'fa-solid fa-utensils text-amber-500'" class="mr-2"></i>
+                                {{ editingRecipeId ? 'Ubah' : 'Buat' }} {{ recipeForm.type === 'prep' ? 'Sub-Resep / Adonan' : 'Menu Jualan' }}
+                            </h3>
+                            <button type="button" @click="showRecipeModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">&times;</button>
+                        </div>
+
+                        <form @submit.prevent="saveRecipe" class="flex flex-col flex-1 overflow-hidden text-sm">
+                            <!-- STICKY TOP FORM -->
+                            <div class="bg-white dark:bg-slate-800 p-4 shrink-0 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10 transition-colors overflow-y-auto max-h-48">
+                                <div v-if="!editingRecipeId" class="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-lg mb-4 border border-slate-200 dark:border-slate-700">
+                                    <button type="button" @click="recipeForm.type = 'menu'" :class="recipeForm.type === 'menu' ? 'bg-white dark:bg-slate-700 shadow-sm text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-1.5 text-xs rounded-md transition-all">Menu Jualan</button>
+                                    <button type="button" @click="recipeForm.type = 'prep'" :class="recipeForm.type === 'prep' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-1.5 text-xs rounded-md transition-all">Bahan Setengah Jadi (Prep)</button>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="sm:col-span-2">
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase tracking-wide">Nama {{ recipeForm.type === 'prep' ? 'Adonan / Batch' : 'Menu' }} *</label>
+                                        <input v-model="recipeForm.name" type="text" required :placeholder="recipeForm.type === 'prep' ? 'Misal: Adonan Dimsum' : 'Misal: Es Kopi Susu'" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 dark:text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase tracking-wide">Kategori</label>
+                                        <select v-model="recipeForm.category" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 dark:text-white focus:border-amber-500 outline-none">
+                                            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div v-if="recipeForm.type === 'prep'" class="sm:col-span-3 grid grid-cols-2 gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg border border-indigo-200 dark:border-indigo-800/50 mt-1">
+                                        <div>
+                                            <label class="block font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-[10px] uppercase tracking-wide">Hasil Produksi (Batch) *</label>
+                                            <input v-model.number="recipeForm.yieldQty" type="number" required min="0.01" step="any" class="w-full px-3 py-2 border border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-bold font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-[10px] uppercase tracking-wide">Satuan Hasil</label>
+                                            <select v-model="recipeForm.yieldUnit" class="w-full px-3 py-2 border border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white focus:border-indigo-500 outline-none font-semibold">
+                                                <option value="pcs">Pcs / Buah</option>
+                                                <option value="gram">Gram (g)</option>
+                                                <option value="kg">Kilogram (kg)</option>
+                                                <option value="ml">Mililiter (ml)</option>
+                                                <option value="liter">Liter (L)</option>
+                                                <option value="porsi">Porsi</option>
+                                                <option value="batch">Batch</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SCROLLABLE MIDDLE -->
+                            <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900 pb-20">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wide">Komposisi Bahan</label>
+                                    <button type="button" @click="addRecipeItemRow" class="text-amber-700 hover:text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase shadow-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i> Tambah Item</button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div v-if="recipeForm.items.length === 0" class="text-center py-8 text-xs text-slate-400 italic bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
+                                        Belum ada bahan. Klik "Tambah Item".
+                                    </div>
+                                    
+                                    <transition-group name="list">
+                                    <div v-for="(item, idx) in recipeForm.items" :key="'item-'+idx" class="flex flex-col gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative group mb-3" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10' : ''">
+                                        <button type="button" @click="removeRecipeItemRow(idx)" class="absolute right-2 top-2 text-slate-300 hover:text-red-500 dark:bg-slate-800 bg-white rounded-full p-1 transition-colors z-10"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
+
+                                        <!-- Select Ingredient - DIPERBARUI UNTUK SEARCH -->
+                                        <div class="w-full pr-8">
+                                            <div class="flex justify-between items-center mb-0.5">
+                                                <label class="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">Pilih Bahan Baku / Sub-Resep</label>
+                                                <span v-if="isPackagingOrSupplies(item.ingredientId)" class="text-[9px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">
+                                                    <i class="fa-solid fa-box-open text-[8px] mr-1"></i>Kemasan / Penunjang
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Fitur Search di Dropdown Bahan Baku (Custom Select) -->
+                                            <div class="relative">
+                                                <div @click="openIngredientSelect(idx)" class="w-full px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
+                                                    <span>{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
+                                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Qty & Unit & Cost Row -->
+                                        <div class="flex items-end justify-between mt-1">
+                                            <div class="flex items-center gap-1.5">
+                                                <div class="flex flex-col">
+                                                    <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Takaran</label>
+                                                    <input v-model.number="item.qty" type="number" required step="any" min="0.001" placeholder="0" class="w-20 px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-mono text-center focus:ring-1 focus:ring-amber-500 outline-none bg-slate-50 dark:bg-slate-900 dark:text-white">
+                                                </div>
+                                                
+                                                <div class="flex flex-col mb-0.5">
+                                                    <div v-if="item.ingredientId">
+                                                        <select v-model="item.unit" v-if="['kg', 'gram'].includes(getIngredientUnit(item.ingredientId))" class="px-1.5 py-1.5 bg-transparent text-xs font-bold text-slate-500 dark:text-slate-300 outline-none cursor-pointer border-b border-dashed border-slate-300">
+                                                            <option value="gram">gram</option>
+                                                            <option value="kg">kg</option>
+                                                        </select>
+                                                        <select v-model="item.unit" v-else-if="['liter', 'ml'].includes(getIngredientUnit(item.ingredientId))" class="px-1.5 py-1.5 bg-transparent text-xs font-bold text-slate-500 dark:text-slate-300 outline-none cursor-pointer border-b border-dashed border-slate-300">
+                                                            <option value="ml">ml</option>
+                                                            <option value="liter">liter</option>
+                                                        </select>
+                                                        <span v-else class="text-xs font-bold text-slate-400 block py-1.5 px-1">{{ getIngredientUnit(item.ingredientId) }}</span>
+                                                    </div>
+                                                    <span v-else class="text-xs font-bold text-slate-400 block py-1.5 px-1">-</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="text-right">
+                                                <div class="text-[9px] font-bold text-slate-400 uppercase">HPP Item</div>
+                                                <div class="font-mono font-bold text-slate-700 dark:text-slate-200">Rp {{ formatNumber(calculateItemCost(item, [editingRecipeId])) }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </transition-group>
+                                </div>
+                                
+                                <!-- Overhead Cost Input -->
+                                <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <label class="flex items-center justify-between cursor-pointer group bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase tracking-wide"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Biaya Ops / Overhead</span>
+                                            <span class="text-[9px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">Misal: Kemasan, Listrik/Gas</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 shadow-inner group-focus-within:border-amber-500 transition-colors">
+                                            <span class="text-xs font-bold text-slate-400">Rp</span>
+                                            <input v-model.number="recipeForm.overheadCost" type="number" min="0" placeholder="0" class="w-20 text-right text-sm font-mono font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- STICKY BOTTOM FORM -->
+                            <div class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10 transition-colors">
+                                <div v-if="recipeForm.type === 'menu'">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Perhitungan Harga Jual:</span>
+                                        <div class="flex gap-2 text-[10px] font-bold">
+                                            <button type="button" @click="priceInputMode = 'margin'" :class="priceInputMode === 'margin' ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="px-2 py-0.5 rounded transition">Margin (%)</button>
+                                            <button type="button" @click="priceInputMode = 'custom_price'" :class="priceInputMode === 'custom_price' ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="px-2 py-0.5 rounded transition">Harga (Rp)</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3 mb-3">
+                                        <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 truncate">
+                                            <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block truncate">Modal (1 porsi)</span>
+                                            <span class="font-mono font-bold text-slate-900 dark:text-white text-base">Rp {{ formatNumber(modalCalculatedRecipeHPP) }}</span>
+                                        </div>
+
+                                        <div v-if="priceInputMode === 'margin'" class="bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/50">
+                                            <label class="text-[9px] font-bold text-amber-800 dark:text-amber-400 uppercase block mb-0.5">Target Profit Margin</label>
+                                            <div class="flex items-center">
+                                                <input v-model.number="recipeForm.margin" @input="handleMarginInput" type="number" min="0" max="99" required class="w-full font-mono font-bold text-amber-900 dark:text-amber-200 bg-transparent focus:outline-none text-base">
+                                                <span class="text-xs font-bold text-amber-700 dark:text-amber-400">%</span>
+                                            </div>
+                                        </div>
+
+                                        <div v-else class="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50">
+                                            <label class="text-[9px] font-bold text-emerald-800 dark:text-emerald-400 uppercase block mb-0.5">Hasil Margin Persen</label>
+                                            <div class="font-mono font-bold text-emerald-900 dark:text-emerald-300 text-base" :class="calculatedMarginFromCustomPrice < targetMargin ? 'text-red-500' : ''">
+                                                {{ calculatedMarginFromCustomPrice }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl p-3 mb-3 shadow-md">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-bold text-xs uppercase tracking-wide">Harga Jual Dasar:</span>
+                                            <div v-if="priceInputMode === 'custom_price'" class="flex items-center bg-emerald-700 dark:bg-emerald-800 rounded-lg px-2 py-1 border border-emerald-500">
+                                                <span class="text-xs font-bold mr-1">Rp</span>
+                                                <input v-model.number="recipeForm.customPrice" @input="handleCustomPriceInput" type="number" min="0" placeholder="0" class="w-28 font-mono font-bold text-white bg-transparent focus:outline-none text-right text-base">
+                                            </div>
+                                            <span v-else class="font-mono font-bold text-lg">Rp {{ formatNumber(modalCalculatedBasePrice) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="recipeForm.type === 'prep'" class="mb-3 space-y-2">
+                                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-200 dark:border-indigo-800/50 flex justify-between items-center">
+                                        <span class="text-[11px] font-bold text-indigo-800 dark:text-indigo-400 uppercase">Modal 1 Batch (Total):</span>
+                                        <span class="font-mono font-bold text-indigo-900 dark:text-indigo-200 text-base">Rp {{ formatNumber(modalCalculatedRecipeHPP) }}</span>
+                                    </div>
+                                    <div class="bg-slate-100 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">HPP per 1 {{ recipeForm.yieldUnit }}:</span>
+                                        <span class="font-mono font-bold text-slate-800 dark:text-white text-base">Rp {{ formatNumber(modalCalculatedRecipeHPP / (recipeForm.yieldQty || 1)) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button type="button" @click="showRecipeModal = false" class="px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl font-bold text-sm transition-colors w-1/3 text-center">Batal</button>
+                                    <button type="submit" class="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-md flex items-center justify-center gap-2 text-sm transition-colors">
+                                        <i class="fa-regular fa-floppy-disk"></i> Simpan {{ recipeForm.type === 'prep' ? 'Prep' : 'Menu' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MODAL INGREDIENT & SUPPLIER -->
+                <div v-if="showIngredientModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 overflow-y-auto backdrop-blur-sm">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-xl my-8 transition-colors">
+                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ editingIngredientId ? 'Ubah Bahan Baku' : 'Tambah Bahan Mentah' }}</h3>
+                            <button type="button" @click="showIngredientModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        </div>
+                        <form @submit.prevent="saveIngredient" class="space-y-4 text-sm">
+                            <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                                <div>
+                                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Nama Bahan Mentah *</label>
+                                    <input v-model="ingredientForm.name" type="text" required placeholder="Daging Ayam / Susu" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Brand (Opsional)</label>
+                                        <input v-model="ingredientForm.brand" type="text" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Kategori Bahan</label>
+                                        <select v-model="ingredientForm.category" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                            <option value="">-- Pilih Kategori --</option>
+                                            <option v-for="cat in ingredientCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Supplier</label>
+                                    <select v-model="ingredientForm.supplierId" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-xs focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                        <option value="">-- Tidak diisi --</option>
+                                        <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Harga Beli (Rp)*</label>
+                                    <input v-model.number="ingredientForm.buyPrice" type="number" required min="0" placeholder="100000" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Kuantitas Dapat*</label>
+                                    <div class="flex">
+                                        <input v-model.number="ingredientForm.buyQty" type="number" required step="any" min="0.01" class="w-full px-3 py-2 border-y border-l border-slate-300 dark:border-slate-600 rounded-l-lg font-mono focus:ring-1 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 dark:text-white">
+                                        <select v-model="ingredientForm.unit" required class="px-2 py-2 border border-slate-300 dark:border-slate-600 rounded-r-lg bg-slate-100 dark:bg-slate-700 text-xs font-semibold focus:ring-1 focus:ring-amber-500 outline-none dark:text-white">
+                                            <option value="gram">g</option>
+                                            <option value="kg">kg</option>
+                                            <option value="ml">ml</option>
+                                            <option value="liter">L</option>
+                                            <option value="pcs">pcs</option>
+                                            <option value="porsi">prs</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800/50 shadow-inner">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="font-semibold text-amber-900 dark:text-amber-300 text-xs">Yield / Hasil Bersih (%)</label>
+                                    <input v-model.number="ingredientForm.yieldPercent" type="number" min="1" max="100" class="w-16 px-2 py-1 border border-amber-300 dark:border-amber-700 rounded text-center text-xs font-bold text-amber-900 dark:text-amber-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                                </div>
+                                <p class="text-[10px] text-amber-700/80 dark:text-amber-500/80 mb-2 leading-tight">Jika bahan ada penyusutan saat dibersihkan/dikupas. Biarkan 100% jika utuh.</p>
+                                
+                                <div class="pt-2 border-t border-amber-200/50 dark:border-amber-800/50 flex justify-between items-end">
+                                    <span class="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wide">HPP Satuan Aktual:</span>
+                                    <span class="text-lg font-bold font-mono text-amber-900 dark:text-amber-200">Rp {{ formatNumber(modalCalculatedNetUnitPrice) }}<span class="text-xs font-sans text-amber-700 dark:text-amber-500"> / {{ ingredientForm.unit || 'sat' }}</span></span>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
+                                <button type="button" @click="showIngredientModal = false" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg font-bold text-xs transition-colors">Batal</button>
+                                <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-md flex items-center gap-2 text-xs transition-colors">
+                                    <i class="fa-regular fa-floppy-disk"></i> Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div v-if="showSupplierModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-xl transition-colors">
+                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ editingSupplierId ? 'Ubah Supplier' : 'Tambah Supplier' }}</h3>
+                            <button type="button" @click="showSupplierModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        </div>
+                        <form @submit.prevent="saveSupplier" class="space-y-3 text-sm">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Toko / Vendor *</label>
+                                <input v-model="supplierForm.name" type="text" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-1 focus:ring-amber-500 bg-slate-50 dark:bg-slate-900 dark:text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nomor Kontak (WA)</label>
+                                <input v-model="supplierForm.phone" type="text" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-mono focus:ring-1 focus:ring-amber-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Alamat</label>
+                                <textarea v-model="supplierForm.address" rows="2" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none"></textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-3">
+                                <button type="button" @click="showSupplierModal = false" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-xs font-bold transition-colors">Batal</button>
+                                <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-md transition-colors">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MODAL: KELOLA SETTINGS -->
+                <div v-if="showSettingsModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm flex flex-col max-h-[90vh] shadow-xl transition-colors">
+                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 p-4 shrink-0">
+                            <h3 class="font-bold text-slate-900 dark:text-white text-lg"><i class="fa-solid fa-gear text-amber-500 mr-1.5"></i> Pengaturan Toko</h3>
+                            <button type="button" @click="showSettingsModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl">&times;</button>
+                        </div>
+                        
+                        <div class="p-4 overflow-y-auto flex-1 space-y-6">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-store text-slate-400 mr-1"></i> Identitas Toko</label>
+                                <input v-model="storeName" @change="saveUserSettings" type="text" placeholder="Nama Toko / Kedai" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                
+                                <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i>Mode Gelap</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                      <input type="checkbox" v-model="isDarkMode" class="sr-only peer">
+                                      <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- NEW: PENGATURAN TARGET FINANSIAL (BEP & MARGIN) -->
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-chart-line text-slate-400 mr-1"></i> Target Finansial & BEP</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <label class="block text-[9px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Margin Min (%)</label>
+                                        <input v-model.number="targetMargin" @change="saveUserSettings" type="number" min="0" max="99" class="w-full bg-transparent text-base font-bold text-slate-800 dark:text-white outline-none">
+                                    </div>
+                                    <div class="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <label class="block text-[9px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Biaya Tetap / Bln (Rp)</label>
+                                        <input v-model.number="fixedCost" @change="saveUserSettings" type="number" min="0" class="w-full bg-transparent text-sm font-mono font-bold text-slate-800 dark:text-white outline-none">
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Digunakan untuk hitung rata-rata BEP per bulan & notifikasi peringatan jika ada margin resep yang terlalu tipis (di bawah standar).</p>
+                            </div>
+
+                            <!-- KITCHEN MODE PIN SETTING -->
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-lock text-slate-400 mr-1"></i> Keamanan Kiosk Mode</label>
+                                <div class="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                                    <label class="block text-xs font-semibold text-amber-900 dark:text-amber-400 mb-1">PIN Mode Dapur (4 Digit)</label>
+                                    <input v-model="kitchenPin" @change="saveUserSettings" type="text" maxlength="4" placeholder="1234" class="w-full px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-lg text-xl text-center font-mono tracking-[0.5em] font-bold bg-white dark:bg-slate-800 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <p class="text-[10px] text-amber-700 dark:text-amber-500 mt-1.5 leading-tight">Gunakan PIN ini untuk keluar dari Mode Dapur. Jangan beritahu karyawan.</p>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-motorcycle text-slate-400 mr-1"></i> Potongan Platform</label>
+                                <div class="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div v-if="platforms.length === 0" class="text-xs text-center text-slate-400 py-2">Belum ada platform.</div>
+                                    <div v-for="(plat, idx) in platforms" :key="idx" class="flex justify-between items-center py-1.5 px-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 mb-1 shadow-sm">
+                                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 w-1/2 truncate">{{ plat.name }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex items-center border dark:border-slate-600 rounded">
+                                                <input type="number" v-model.number="plat.fee" @change="saveUserSettings" class="w-12 text-center text-xs font-mono py-1 focus:outline-none bg-transparent dark:text-white">
+                                                <span class="text-xs text-slate-500 dark:text-slate-400 pr-1">%</span>
+                                            </div>
+                                            <button type="button" @click="removePlatform(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <form @submit.prevent="addPlatform" class="flex gap-2">
+                                    <input v-model="newPlatform.name" type="text" placeholder="Nama Platform" required class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <input v-model.number="newPlatform.fee" type="number" placeholder="%" required min="0" max="90" class="w-16 px-2 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white text-center focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <button type="submit" class="bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 text-white px-3 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus"></i></button>
+                                </form>
+                            </div>
+                            
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-cubes text-slate-400 mr-1"></i> Kategori Bahan Baku</label>
+                                <div class="max-h-40 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div v-if="ingredientCategories.length === 0" class="text-xs text-center text-slate-400 py-2">Belum ada kategori bahan.</div>
+                                    <div v-for="(cat, idx) in ingredientCategories" :key="'ing-cat-'+idx" class="flex justify-between items-center py-1.5 px-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 mb-1 shadow-sm">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ cat }}</span>
+                                        <button type="button" @click="removeIngredientCategory(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                                <form @submit.prevent="addIngredientCategory" class="flex gap-2">
+                                    <input v-model="newIngredientCategory" type="text" placeholder="Kategori Bahan Baru" required class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <button type="submit" class="bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 text-white px-3 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus"></i></button>
+                                </form>
+                            </div>
+
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-tags text-slate-400 mr-1"></i> Kategori Resep</label>
+                                <div class="max-h-40 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div v-if="categories.length === 0" class="text-xs text-center text-slate-400 py-2">Belum ada kategori.</div>
+                                    <div v-for="(cat, idx) in categories" :key="idx" class="flex justify-between items-center py-1.5 px-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 mb-1 shadow-sm">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ cat }}</span>
+                                        <button type="button" @click="removeCategory(idx)" class="text-red-400 hover:text-red-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                                <form @submit.prevent="addCategory" class="flex gap-2">
+                                    <input v-model="newCategoryName" type="text" placeholder="Kategori Baru" required class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-1 focus:ring-amber-500 outline-none">
+                                    <button type="submit" class="bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 text-white px-3 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
+                            <div class="text-[9px] text-slate-400 text-left leading-tight">
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.5.1 (GitHub PWA)
+                            </div>
+                            <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL: INPUT PIN (UNLOCK KITCHEN MODE) -->
+                <div v-if="showPinModal" class="fixed inset-0 bg-slate-900/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xs p-6 text-center shadow-2xl animate-fade-in-up border-t-4 border-amber-500">
+                        <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-1">Buka Kunci Dapur</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Masukkan 4 digit PIN Owner</p>
+                        
+                        <form @submit.prevent="unlockKitchenMode" class="space-y-4">
+                            <input v-model="pinInput" type="password" maxlength="4" placeholder="••••" required autofocus class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-3xl text-center tracking-[0.5em] font-mono bg-slate-50 dark:bg-slate-900 dark:text-white focus:border-amber-500 focus:outline-none transition-colors">
+                            
+                            <div v-if="pinError" class="text-red-500 text-xs font-bold bg-red-50 dark:bg-red-900/20 py-2 rounded animate-shake">
+                                PIN Tidak Sesuai!
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2 pt-2">
+                                <button type="button" @click="showPinModal = false; pinInput = ''; pinError = false" class="py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-sm transition-colors hover:bg-slate-200 dark:hover:bg-slate-600">Batal</button>
+                                <button type="submit" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm shadow-md transition-colors">Buka Akses</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- AREA PRINT KHUSUS (HANYA TERLIHAT SAAT PRINT) -->
+        <div v-if="recipeToPrint" class="hidden print:block w-full bg-white text-black p-4 z-[200]">
+            <div class="text-center border-b-2 border-black pb-4 mb-4">
+                <h1 class="text-2xl font-extrabold uppercase">{{ storeName }}</h1>
+                <h2 class="text-lg mt-1 font-bold uppercase tracking-widest border-t border-black pt-1 inline-block">SOP TAKARAN DAPUR</h2>
+            </div>
+            
+            <div class="mb-5 flex justify-between border-b border-gray-300 pb-3">
+                <div>
+                    <h3 class="text-2xl font-bold mb-1">{{ recipeToPrint.name }}</h3>
+                    <p class="text-sm text-gray-600"><strong>Kategori:</strong> {{ recipeToPrint.category }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block px-3 py-1 bg-gray-100 border border-gray-400 font-bold text-sm rounded">
+                        Hasil: {{ recipeToPrint.yieldQty }} {{ recipeToPrint.yieldUnit }}
+                    </span>
+                    <p class="text-xs mt-2 text-gray-500">Tipe: {{ recipeToPrint.type === 'prep' ? 'Bahan Setengah Jadi (Prep)' : 'Menu Jualan' }}</p>
+                </div>
+            </div>
+
+            <div class="space-y-6 mt-4">
+                <!-- Tabel 1: Bahan Utama & Sub-Resep -->
+                <div>
+                    <h4 class="font-bold text-sm uppercase tracking-wider mb-2 border-b-2 border-black pb-1">1. Bahan Utama & Sub-Resep</h4>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-black text-xs">
+                                <th class="py-1.5 font-bold w-12 text-center">No</th>
+                                <th class="py-1.5 font-bold">Nama Bahan / Sub-Resep</th>
+                                <th class="py-1.5 font-bold text-right">Takaran Standard</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in getGroupedRecipeItems(recipeToPrint?.items).mainItems" :key="'p-main-'+idx" class="border-b border-gray-200">
+                                <td class="py-2 text-center text-sm">{{ idx + 1 }}</td>
+                                <td class="py-2 font-semibold text-base" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'font-bold italic' : ''">
+                                    {{ getIngredientName(item.ingredientId) }}
+                                </td>
+                                <td class="py-2 text-right font-bold text-base">
+                                    {{ item.qty }} <span class="text-xs font-normal">{{ item.unit || getIngredientUnit(item.ingredientId) }}</span>
+                                </td>
+                            </tr>
+                            <tr v-if="getGroupedRecipeItems(recipeToPrint?.items).mainItems.length === 0">
+                                <td colspan="3" class="py-2 text-center text-xs italic text-gray-400">Tidak ada item bahan utama.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tabel 2: Kemasan & Bahan Penunjang -->
+                <div v-if="getGroupedRecipeItems(recipeToPrint?.items).packageItems.length > 0">
+                    <h4 class="font-bold text-sm uppercase tracking-wider mb-2 border-b-2 border-black pb-1">2. Kemasan & Bahan Penunjang</h4>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-black text-xs">
+                                <th class="py-1.5 font-bold w-12 text-center">No</th>
+                                <th class="py-1.5 font-bold">Nama Kemasan / Wadah</th>
+                                <th class="py-1.5 font-bold text-right">Jumlah / Ukuran</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in getGroupedRecipeItems(recipeToPrint?.items).packageItems" :key="'p-pkg-'+idx" class="border-b border-gray-200">
+                                <td class="py-2 text-center text-sm">{{ idx + 1 }}</td>
+                                <td class="py-2 font-semibold text-base">
+                                    {{ getIngredientName(item.ingredientId) }}
+                                </td>
+                                <td class="py-2 text-right font-bold text-base">
+                                    {{ item.qty }} <span class="text-xs font-normal">{{ item.unit || getIngredientUnit(item.ingredientId) }}</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <p class="text-[10px] text-gray-500 italic">Dokumen SOP Internal - Dicetak pada: {{ new Date().toLocaleString('id-ID') }}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('Service Worker berhasil didaftarkan.', reg.scope);
+                }).catch(err => {
+                    console.log('Pendaftaran Service Worker gagal:', err);
+                });
+            });
+        }
+    </script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = window.firebaseConfig || {
+            apiKey: "PASTE_YOUR_API_KEY_HERE",
+            authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+            projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+            storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+            messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "PASTE_YOUR_APP_ID_HERE"
+        };
+
+        let app, auth, db;
+        let isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("PASTE_YOUR");
+
+        if (isConfigured) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+        }
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    user: null,
+                    currentTab: 'dashboard', 
+                    recipeListTab: 'menu',
+                    
+                    // Network State
+                    isOnline: navigator.onLine,
+                    showOnlineToast: false,
+
+                    authMode: 'login', 
+                    authForm: { email: '', password: '' },
+                    authError: '',
+                    loading: false,
+                    
+                    // Kitchen Mode States
+                    isKitchenMode: localStorage.getItem('hpp_kitchen_mode') === 'true',
+                    kitchenPin: '1234',
+                    showPinModal: false,
+                    pinInput: '',
+                    pinError: false,
+
+                    suppliers: [],
+                    ingredients: [],
+                    recipes: [],
+                    
+                    // User Settings (Termasuk Finansial Target)
+                    storeName: 'Kedai Paradise',
+                    isDarkMode: false,
+                    fixedCost: 3000000,
+                    targetMargin: 40,
+                    categories: ['Kopi', 'Non-Kopi', 'Makanan Utama', 'Bento Box', 'Snack', 'Syrup/Prep'],
+                    platforms: [
+                        { name: 'GoFood', fee: 25 },
+                        { name: 'GrabFood', fee: 25 },
+                        { name: 'ShopeeFood', fee: 20 }
+                    ],
+                    
+                    showSettingsModal: false,
+                    newCategoryName: '',
+                    ingredientCategories: ['Daging', 'Dairy', 'Sayuran', 'Bumbu', 'Kemasan & Wadah', 'Bahan Penunjang', 'Lainnya'],
+                    newIngredientCategory: '',
+                    newPlatform: { name: '', fee: 20 },
+
+                    recipeSearch: '', recipeCategoryFilter: 'All', recipeSort: 'name_asc', 
+                    ingredientSearch: '', ingredientSupplierFilter: 'All', ingredientSort: 'name_asc', 
+                    priceInputMode: 'margin',
+                    
+                    // Search dropdown states
+                    activeIngredientSelectIdx: null,
+                    ingredientSelectSearch: '',
+
+                    showSupplierModal: false, editingSupplierId: null, supplierForm: { name: '', phone: '', address: '' },
+                    showIngredientModal: false, editingIngredientId: null, ingredientForm: { name: '', brand: '', category: '', supplierId: '', buyPrice: 0, buyQty: 1, unit: 'gram', yieldPercent: 100 },
+                    
+                    showRecipeModal: false, editingRecipeId: null, 
+                    recipeForm: { 
+                        type: 'menu', name: '', category: 'Kopi', margin: 40, customPrice: 0, overheadCost: 0, 
+                        yieldQty: 1, yieldUnit: 'porsi', items: [] 
+                    },
+                    
+                    recipeToPrint: null, 
+
+                    unsubscribes: []
+                }
+            },
+            computed: {
+                normalizedRecipes() {
+                    return this.recipes.map(r => ({
+                        ...r,
+                        type: r.type ? r.type : ((r.yieldQty > 1 || r.yieldUnit !== 'porsi') ? 'prep' : 'menu')
+                    }));
+                },
+                dashboardStats() {
+                    const mapped = this.normalizedRecipes;
+                    const totalMenu = mapped.filter(r => r.type === 'menu').length;
+                    const totalPrep = mapped.filter(r => r.type === 'prep').length;
+                    const totalIngredients = this.ingredients.length;
+                    
+                    let totalMargin = 0;
+                    mapped.filter(r => r.type === 'menu').forEach(r => {
+                        totalMargin += this.formatMargin(r);
+                    });
+                    const avgMargin = totalMenu > 0 ? Math.round(totalMargin / totalMenu) : 0;
+
+                    const topRecipes = [...mapped]
+                        .filter(r => r.type === 'menu') 
+                        .sort((a, b) => this.formatMargin(b) - this.formatMargin(a))
+                        .slice(0, 3);
+
+                    return { totalMenu, totalPrep, totalIngredients, avgMargin, topRecipes };
+                },
+                
+                // KALKULASI BEP (Break-Even Point)
+                bepStats() {
+                    const menus = this.normalizedRecipes.filter(r => r.type === 'menu');
+                    if (menus.length === 0) return { avgProfit: 0, targetPorsiBulan: 0, targetPorsiHari: 0, targetOmset: 0 };
+                    
+                    let totalProfit = 0;
+                    let totalPrice = 0;
+                    
+                    menus.forEach(r => {
+                        const hpp = this.calculateRecipeHPP(r);
+                        const price = this.calculateBasePrice(r);
+                        totalProfit += (price > hpp ? (price - hpp) : 0);
+                        totalPrice += price;
+                    });
+                    
+                    const avgProfit = totalProfit / menus.length;
+                    const avgPrice = totalPrice / menus.length;
+                    
+                    if (avgProfit <= 0) return { avgProfit: 0, targetPorsiBulan: 0, targetPorsiHari: 0, targetOmset: 0 };
+                    
+                    const fc = Number(this.fixedCost) || 0;
+                    const targetPorsiBulan = Math.ceil(fc / avgProfit);
+                    const targetPorsiHari = Math.ceil(targetPorsiBulan / 30);
+                    const targetOmset = targetPorsiBulan * avgPrice;
+                    
+                    return { avgProfit, targetPorsiBulan, targetPorsiHari, targetOmset };
+                },
+
+                modalCalculatedNetUnitPrice() {
+                    const price = Number(this.ingredientForm.buyPrice) || 0;
+                    const qty = Number(this.ingredientForm.buyQty) || 1;
+                    const yieldPct = Number(this.ingredientForm.yieldPercent) || 100;
+                    return (qty * (yieldPct / 100)) > 0 ? price / (qty * (yieldPct / 100)) : 0;
+                },
+                modalCalculatedRecipeHPP() {
+                    if (!this.recipeForm.items) return 0;
+                    const visited = this.editingRecipeId ? [this.editingRecipeId] : [];
+                    const ingredientsCost = this.recipeForm.items.reduce((total, item) => total + this.calculateItemCost(item, visited), 0);
+                    return ingredientsCost + (Number(this.recipeForm.overheadCost) || 0);
+                },
+                modalCalculatedBasePrice() {
+                    if (this.priceInputMode === 'custom_price') {
+                        return Number(this.recipeForm.customPrice) || 0;
+                    }
+                    const margin = Number(this.recipeForm.margin) || 0;
+                    return margin >= 100 ? this.modalCalculatedRecipeHPP : this.modalCalculatedRecipeHPP / (1 - (margin / 100));
+                },
+                calculatedMarginFromCustomPrice() {
+                    const hpp = this.modalCalculatedRecipeHPP;
+                    const price = Number(this.recipeForm.customPrice) || 0;
+                    if (price <= 0 || price <= hpp) return 0;
+                    return Math.round(((price - hpp) / price) * 100);
+                },
+
+                groupedIngredientsOptions() {
+                    const groups = {};
+                    this.ingredients.forEach(ing => {
+                        const cat = ing.category || 'Lainnya';
+                        if (!groups[cat]) groups[cat] = [];
+                        groups[cat].push({ id: ing.id, name: ing.name, brand: ing.brand });
+                    });
+                    const options = Object.keys(groups).sort().map(cat => ({
+                        label: cat,
+                        items: groups[cat].sort((a,b) => a.name.localeCompare(b.name))
+                    }));
+
+                    const subRecipes = this.normalizedRecipes
+                        .filter(r => r.type === 'prep' && r.id !== this.editingRecipeId)
+                        .map(r => ({ id: 'recipe_' + r.id, name: r.name, brand: `Hsl: ${r.yieldQty} ${r.yieldUnit}` }));
+                    
+                    if (subRecipes.length > 0) {
+                        options.unshift({
+                            label: '📦 SUB-RESEP / PREP ADONAN',
+                            items: subRecipes.sort((a,b) => a.name.localeCompare(b.name))
+                        });
+                    }
+                    return options;
+                },
+                
+                filteredGroupedIngredientsOptions() {
+                    if (!this.ingredientSelectSearch) return this.groupedIngredientsOptions;
+                    
+                    const searchLower = this.ingredientSelectSearch.toLowerCase();
+                    const filteredOptions = [];
+                    
+                    for (const group of this.groupedIngredientsOptions) {
+                        const filteredItems = group.items.filter(item => 
+                            item.name.toLowerCase().includes(searchLower) || 
+                            (item.brand && item.brand.toLowerCase().includes(searchLower))
+                        );
+                        
+                        if (filteredItems.length > 0) {
+                            filteredOptions.push({
+                                label: group.label,
+                                items: filteredItems
+                            });
+                        }
+                    }
+                    
+                    return filteredOptions;
+                },
+                
+                sortedSuppliers() { return [...this.suppliers].sort((a, b) => a.name.localeCompare(b.name)); },
+                filteredAndSortedIngredients() {
+                    let result = this.ingredients;
+                    if (this.ingredientSearch) {
+                        const s = this.ingredientSearch.toLowerCase();
+                        result = result.filter(i => i.name.toLowerCase().includes(s) || (i.brand && i.brand.toLowerCase().includes(s)));
+                    }
+                    if (this.ingredientSupplierFilter !== 'All') result = result.filter(i => i.supplierId === this.ingredientSupplierFilter);
+                    return result.sort((a, b) => {
+                        if (this.ingredientSort === 'name_asc') return a.name.localeCompare(b.name);
+                        if (this.ingredientSort === 'name_desc') return b.name.localeCompare(a.name);
+                        if (this.ingredientSort === 'brand_asc') return (a.brand || '').localeCompare(b.brand || '');
+                        if (this.ingredientSort === 'date_desc') return (b.updatedAt || 0) - (a.updatedAt || 0);
+                        return 0;
+                    });
+                },
+                filteredAndSortedRecipes() {
+                    let result = this.normalizedRecipes.filter(r => r.type === this.recipeListTab);
+                    
+                    if (this.recipeSearch) {
+                        const s = this.recipeSearch.toLowerCase();
+                        result = result.filter(r => r.name.toLowerCase().includes(s));
+                    }
+                    if (this.recipeCategoryFilter !== 'All') result = result.filter(r => r.category === this.recipeCategoryFilter);
+                    return result.sort((a, b) => {
+                        if (this.recipeSort === 'name_asc') return a.name.localeCompare(b.name);
+                        if (this.recipeSort === 'name_desc') return b.name.localeCompare(a.name);
+                        if (this.recipeSort === 'margin_desc') return this.formatMargin(b) - this.formatMargin(a);
+                        if (this.recipeSort === 'hpp_desc') return this.calculateRecipeHPP(b) - this.calculateRecipeHPP(a);
+                        if (this.recipeSort === 'date_desc') return (b.updatedAt || 0) - (a.updatedAt || 0);
+                        return 0;
+                    });
+                }
+            },
+            watch: {
+                isDarkMode(val) {
+                    if(val) document.documentElement.classList.add('dark');
+                    else document.documentElement.classList.remove('dark');
+                    localStorage.setItem('hpp_dark_mode', val);
+                }
+            },
+            mounted() {
+                const savedDark = localStorage.getItem('hpp_dark_mode');
+                if(savedDark) this.isDarkMode = savedDark === 'true';
+                else this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                // Network Listeners dengan Toast Logic
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                    this.showOnlineToast = true;
+                    setTimeout(() => { this.showOnlineToast = false; }, 3000);
+                });
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                    this.showOnlineToast = false;
+                });
+
+                if (!isConfigured) console.warn("Firebase Config belum diisi.");
+                else {
+                    onAuthStateChanged(auth, (u) => {
+                        this.user = u;
+                        if (u) { this.subscribeData(); this.loadUserSettings(); }
+                        else this.unsubscribeData();
+                    });
+                }
+            },
+            methods: {
+                isPackagingOrSupplies(ingredientId) {
+                    if (!ingredientId || typeof ingredientId !== 'string' || ingredientId.startsWith('recipe_')) return false;
+                    const ing = this.getIngredient(ingredientId);
+                    if (!ing || !ing.category) return false;
+                    const cat = ing.category.toLowerCase();
+                    return cat.includes('kemasan') || cat.includes('wadah') || cat.includes('penunjang') || cat.includes('packaging') || cat.includes('box') || cat.includes('cup');
+                },
+                getGroupedRecipeItems(items) {
+                    if (!items) return { mainItems: [], packageItems: [] };
+                    const mainItems = [];
+                    const packageItems = [];
+                    items.forEach(item => {
+                        if (this.isPackagingOrSupplies(item.ingredientId)) {
+                            packageItems.push(item);
+                        } else {
+                            mainItems.push(item);
+                        }
+                    });
+                    return { mainItems, packageItems };
+                },
+                async handleAuth() {
+                    if (!isConfigured) { alert("Konfigurasi Firebase belum diisi."); return; }
+                    this.authError = ''; this.loading = true;
+                    try {
+                        await signInWithEmailAndPassword(auth, this.authForm.email, this.authForm.password);
+                    } catch (err) { this.authError = "Email atau password salah/invalid."; } 
+                    finally { this.loading = false; }
+                },
+                async logout() { if(auth) await signOut(auth); },
+                
+                enableKitchenMode() {
+                    if (confirm("Anda akan masuk ke Mode Dapur. Halaman ini hanya akan menampilkan SOP/Resep dan Stok Bahan Baku. Harga modal (HPP) tidak akan ditampilkan. Lanjutkan?")) {
+                        this.isKitchenMode = true;
+                        localStorage.setItem('hpp_kitchen_mode', 'true');
+                        if (this.currentTab === 'dashboard' || this.currentTab === 'suppliers') {
+                            this.currentTab = 'recipes';
+                        }
+                    }
+                },
+                unlockKitchenMode() {
+                    if (this.pinInput === this.kitchenPin) {
+                        this.isKitchenMode = false;
+                        localStorage.setItem('hpp_kitchen_mode', 'false');
+                        this.showPinModal = false;
+                        this.pinInput = '';
+                        this.pinError = false;
+                    } else {
+                        this.pinError = true;
+                    }
+                },
+
+                subscribeData() {
+                    if (!this.user || !db) return;
+                    this.unsubscribeData();
+                    const uid = this.user.uid;
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/suppliers`), (snap) => this.suppliers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/ingredients`), (snap) => this.ingredients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/recipes`), (snap) => this.recipes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+                },
+                unsubscribeData() {
+                    this.unsubscribes.forEach(unsub => unsub());
+                    this.unsubscribes = [];
+                },
+
+                async loadUserSettings() {
+                    if(!db || !this.user) return;
+                    const docSnap = await getDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'));
+                    if (docSnap.exists()) {
+                        const d = docSnap.data();
+                        if (d.categories) this.categories = d.categories;
+                        if (d.ingredientCategories) this.ingredientCategories = d.ingredientCategories;
+                        if (d.platforms) this.platforms = d.platforms;
+                        if (d.storeName) this.storeName = d.storeName;
+                        if (d.kitchenPin) this.kitchenPin = d.kitchenPin;
+                        if (d.fixedCost !== undefined) this.fixedCost = d.fixedCost;
+                        if (d.targetMargin !== undefined) this.targetMargin = d.targetMargin;
+                    }
+                },
+                async saveUserSettings() {
+                    if(!db || !this.user) return;
+                    setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), { 
+                        categories: this.categories,
+                        ingredientCategories: this.ingredientCategories,
+                        platforms: this.platforms,
+                        storeName: this.storeName,
+                        kitchenPin: this.kitchenPin,
+                        fixedCost: this.fixedCost,
+                        targetMargin: this.targetMargin
+                    }, { merge: true });
+                },
+                
+                addCategory() { if(this.newCategoryName && !this.categories.includes(this.newCategoryName)) { this.categories.push(this.newCategoryName); this.saveUserSettings(); this.newCategoryName = ''; } },
+                removeCategory(idx) { if(confirm("Hapus kategori ini?")) { this.categories.splice(idx, 1); this.saveUserSettings(); } },
+                addIngredientCategory() { if(this.newIngredientCategory && !this.ingredientCategories.includes(this.newIngredientCategory)) { this.ingredientCategories.push(this.newIngredientCategory); this.saveUserSettings(); this.newIngredientCategory = ''; } },
+                removeIngredientCategory(idx) { if(confirm("Hapus kategori bahan ini?")) { this.ingredientCategories.splice(idx, 1); this.saveUserSettings(); } },
+                addPlatform() { if(this.newPlatform.name && this.newPlatform.fee >= 0) { this.platforms.push({...this.newPlatform}); this.saveUserSettings(); this.newPlatform = { name: '', fee: 20 }; } },
+                removePlatform(idx) { if(confirm("Hapus platform ini?")) { this.platforms.splice(idx, 1); this.saveUserSettings(); } },
+
+                formatDate(ts) { return ts ? new Date(ts).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute:'2-digit' }) : '-'; },
+                formatNumber(val) { return Math.round(val || 0).toLocaleString('id-ID'); },
+                getSupplierName(id) { const s = this.suppliers.find(x => x.id === id); return s ? s.name : '-'; },
+                
+                getIngredient(id) { return this.ingredients.find(i => i.id === id); },
+                getIngredientName(id) { 
+                    if (id && id.startsWith('recipe_')) {
+                        const r = this.normalizedRecipes.find(x => x.id === id.replace('recipe_', ''));
+                        return r ? `[Sub] ${r.name}` : 'Resep Dihapus';
+                    }
+                    const i = this.getIngredient(id); 
+                    return i ? i.name : null; 
+                },
+                getIngredientUnit(id) { 
+                    if (id && id.startsWith('recipe_')) {
+                        const r = this.normalizedRecipes.find(x => x.id === id.replace('recipe_', ''));
+                        return r ? (r.yieldUnit || 'porsi') : '-';
+                    }
+                    const i = this.getIngredient(id); 
+                    return i ? i.unit : '-'; 
+                },
+                
+                calculateNetUnitPrice(ing) {
+                    if (!ing) return 0;
+                    const cleanQty = (Number(ing.buyQty) || 1) * ((Number(ing.yieldPercent) || 100) / 100);
+                    return cleanQty > 0 ? (Number(ing.buyPrice) || 0) / cleanQty : 0;
+                },
+                
+                calculateItemCost(item, visited = []) {
+                    if (!item.ingredientId) return 0;
+                    if (item.ingredientId.startsWith('recipe_')) {
+                        const subId = item.ingredientId.replace('recipe_', '');
+                        const subRecipe = this.normalizedRecipes.find(r => r.id === subId);
+                        if (!subRecipe) return 0;
+                        const subHPP = this.calculateRecipeHPP(subRecipe, [...visited]);
+                        const yieldQty = Number(subRecipe.yieldQty) || 1;
+                        const costPerUnit = subHPP / yieldQty;
+                        let multiplier = 1;
+                        const itemUnit = item.unit || (subRecipe.yieldUnit || 'porsi');
+                        const subUnit = subRecipe.yieldUnit || 'porsi';
+                        if (subUnit === 'kg' && itemUnit === 'gram') multiplier = 1/1000;
+                        if (subUnit === 'gram' && itemUnit === 'kg') multiplier = 1000;
+                        if (subUnit === 'liter' && itemUnit === 'ml') multiplier = 1/1000;
+                        if (subUnit === 'ml' && itemUnit === 'liter') multiplier = 1000;
+                        return costPerUnit * multiplier * (Number(item.qty) || 0);
+                    }
+                    const ing = this.getIngredient(item.ingredientId);
+                    if (!ing) return 0;
+                    const netPrice = this.calculateNetUnitPrice(ing);
+                    let multiplier = 1;
+                    const itemUnit = item.unit || ing.unit;
+                    if (ing.unit === 'kg' && itemUnit === 'gram') multiplier = 1/1000;
+                    if (ing.unit === 'gram' && itemUnit === 'kg') multiplier = 1000;
+                    if (ing.unit === 'liter' && itemUnit === 'ml') multiplier = 1/1000;
+                    if (ing.unit === 'ml' && itemUnit === 'liter') multiplier = 1000;
+                    return netPrice * multiplier * (Number(item.qty) || 0);
+                },
+
+                calculateRecipeHPP(recipe, visited = []) {
+                    if (!recipe) return 0;
+                    if (visited.includes(recipe.id)) return 0; 
+                    const newVisited = [...visited, recipe.id];
+                    const ingredientsCost = recipe.items ? recipe.items.reduce((sum, item) => sum + this.calculateItemCost(item, newVisited), 0) : 0;
+                    return ingredientsCost + (Number(recipe.overheadCost) || 0);
+                },
+                calculateBasePrice(recipe) {
+                    if (recipe.customPrice && recipe.customPrice > 0) return Number(recipe.customPrice);
+                    const mrg = Number(recipe.margin) || 0;
+                    return mrg >= 100 ? this.calculateRecipeHPP(recipe) : this.calculateRecipeHPP(recipe) / (1 - (mrg / 100));
+                },
+                formatMargin(recipe) {
+                    const hpp = this.calculateRecipeHPP(recipe);
+                    const price = this.calculateBasePrice(recipe);
+                    if (price <= 0 || price <= hpp) return Number(recipe.margin) || 0;
+                    return Math.round(((price - hpp) / price) * 100);
+                },
+                calculatePlatformSpecificPrice(recipe, feePercent) { 
+                    return this.calculateBasePrice(recipe) / (1 - (Number(feePercent) / 100)); 
+                },
+
+                openSupplierModal(sup = null) {
+                    this.editingSupplierId = sup ? sup.id : null;
+                    this.supplierForm = sup ? { ...sup } : { name: '', phone: '', address: '' };
+                    this.showSupplierModal = true;
+                },
+                async saveSupplier() {
+                    const nameToSave = this.supplierForm.name.trim().toLowerCase();
+                    const exists = this.suppliers.find(s => s.name.toLowerCase() === nameToSave && s.id !== this.editingSupplierId);
+                    if (exists) { alert("Supplier dengan nama '" + this.supplierForm.name + "' sudah ada!"); return; }
+                    
+                    const data = { ...this.supplierForm, updatedAt: Date.now() };
+                    const ref = collection(db, `users/${this.user.uid}/suppliers`);
+                    if (this.editingSupplierId) updateDoc(doc(ref, this.editingSupplierId), data); 
+                    else addDoc(ref, data);
+                    this.showSupplierModal = false;
+                },
+                async deleteSupplier(id) { 
+                    if (confirm("Hapus?")) deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); 
+                },
+
+                openIngredientModal(ing = null) {
+                    this.editingIngredientId = ing ? ing.id : null;
+                    this.ingredientForm = ing ? { ...ing } : { name: '', brand: '', category: '', supplierId: '', buyPrice: 0, buyQty: 1, unit: 'gram', yieldPercent: 100 };
+                    this.showIngredientModal = true;
+                },
+                async saveIngredient() {
+                    const nameToSave = this.ingredientForm.name.trim().toLowerCase();
+                    const brandToSave = this.ingredientForm.brand ? this.ingredientForm.brand.trim().toLowerCase() : '';
+                    
+                    const exists = this.ingredients.find(i => 
+                        i.name.toLowerCase() === nameToSave && 
+                        (i.brand ? i.brand.trim().toLowerCase() : '') === brandToSave && 
+                        i.id !== this.editingIngredientId
+                    );
+                    
+                    if (exists) { 
+                        alert("Bahan baku dengan nama '" + this.ingredientForm.name + "' dan brand yang sama sudah ada di database!"); 
+                        return; 
+                    }
+                    
+                    const data = { ...this.ingredientForm, updatedAt: Date.now() };
+                    const ref = collection(db, `users/${this.user.uid}/ingredients`);
+                    if (this.editingIngredientId) updateDoc(doc(ref, this.editingIngredientId), data); 
+                    else addDoc(ref, data);
+                    this.showIngredientModal = false;
+                },
+                async deleteIngredient(id) { 
+                    if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); 
+                },
+
+                openRecipeModal(recipe = null, forceType = null) {
+                    this.editingRecipeId = recipe ? recipe.id : null;
+                    let defaultType = forceType || 'menu';
+                    if (recipe) defaultType = recipe.type ? recipe.type : ((recipe.yieldQty > 1 || recipe.yieldUnit !== 'porsi') ? 'prep' : 'menu');
+                    
+                    this.recipeForm = recipe ? JSON.parse(JSON.stringify(recipe)) : { 
+                        type: defaultType, name: '', category: this.categories[0] || 'Umum', margin: 40, customPrice: 0, overheadCost: 0, 
+                        yieldQty: 1, yieldUnit: 'porsi', items: [] 
+                    };
+                    this.recipeForm.type = defaultType;
+                    
+                    if (recipe && recipe.customPrice && recipe.customPrice > 0) this.priceInputMode = 'custom_price';
+                    else this.priceInputMode = 'margin';
+
+                    this.showRecipeModal = true;
+                },
+                addRecipeItemRow() { this.recipeForm.items.unshift({ ingredientId: '', qty: '', unit: '' }); },
+                removeRecipeItemRow(idx) { this.recipeForm.items.splice(idx, 1); },
+                
+                openIngredientSelect(idx) {
+                    this.activeIngredientSelectIdx = idx;
+                    this.ingredientSelectSearch = '';
+                },
+                closeIngredientSelect() {
+                    this.activeIngredientSelectIdx = null;
+                },
+                selectIngredientForItem(idx, ingredientId) {
+                    this.recipeForm.items[idx].ingredientId = ingredientId;
+                    this.handleIngredientChange(this.recipeForm.items[idx]);
+                    this.closeIngredientSelect();
+                },
+                
+                handleIngredientChange(item) {
+                    if (item.ingredientId && item.ingredientId.startsWith('recipe_')) {
+                        const subId = item.ingredientId.replace('recipe_', '');
+                        const subRecipe = this.normalizedRecipes.find(r => r.id === subId);
+                        if (subRecipe) {
+                            const subUnit = subRecipe.yieldUnit || 'porsi';
+                            if (subUnit === 'kg') item.unit = 'gram';
+                            else if (subUnit === 'liter') item.unit = 'ml';
+                            else item.unit = subUnit;
+                        }
+                        return;
+                    }
+                    const ing = this.getIngredient(item.ingredientId);
+                    if (ing) {
+                        if (ing.unit === 'kg') item.unit = 'gram';
+                        else if (ing.unit === 'liter') item.unit = 'ml';
+                        else item.unit = ing.unit;
+                    }
+                },
+                handleMarginInput() {
+                    const hpp = this.modalCalculatedRecipeHPP;
+                    const mrg = Number(this.recipeForm.margin) || 0;
+                    this.recipeForm.customPrice = mrg >= 100 ? hpp : Math.round(hpp / (1 - (mrg / 100)));
+                },
+                handleCustomPriceInput() {
+                    const hpp = this.modalCalculatedRecipeHPP;
+                    const price = Number(this.recipeForm.customPrice) || 0;
+                    if (price > hpp && price > 0) {
+                        this.recipeForm.margin = Math.round(((price - hpp) / price) * 100);
+                    }
+                },
+                async saveRecipe() {
+                    const nameToSave = this.recipeForm.name.trim().toLowerCase();
+                    const exists = this.recipes.find(r => r.name.toLowerCase() === nameToSave && r.id !== this.editingRecipeId);
+                    if (exists) { alert("Resep dengan nama '" + this.recipeForm.name + "' sudah ada!"); return; }
+                    
+                    if (this.recipeForm.type === 'menu') {
+                        this.recipeForm.yieldQty = 1;
+                        this.recipeForm.yieldUnit = 'porsi';
+                        if (this.priceInputMode === 'custom_price') this.recipeForm.margin = this.calculatedMarginFromCustomPrice;
+                        else this.recipeForm.customPrice = Math.round(this.modalCalculatedBasePrice);
+                    } else {
+                        this.recipeForm.margin = 0;
+                        this.recipeForm.customPrice = 0;
+                    }
+                    const data = { ...this.recipeForm, updatedAt: Date.now() };
+                    const ref = collection(db, `users/${this.user.uid}/recipes`);
+                    if (this.editingRecipeId) updateDoc(doc(ref, this.editingRecipeId), data); 
+                    else addDoc(ref, data);
+                    
+                    this.recipeListTab = this.recipeForm.type; 
+                    this.showRecipeModal = false;
+                },
+                async deleteRecipe(id) { 
+                    if (confirm("Hapus resep ini?")) deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); 
+                },
+
+                printSOP(recipe) {
+                    this.recipeToPrint = recipe;
+                    this.$nextTick(() => { window.print(); });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
