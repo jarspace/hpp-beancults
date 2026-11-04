@@ -71,6 +71,15 @@
             </div>
         </transition>
 
+        <!-- GLOBAL ACTION NOTICE -->
+        <transition name="toast-slide">
+            <div v-if="actionNotice" class="fixed top-16 left-1/2 -translate-x-1/2 z-[1200] w-[calc(100%-2rem)] max-w-lg bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 px-4 py-3 rounded-xl shadow-xl flex items-start gap-3 print:hidden" role="alert">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600 dark:text-amber-400"></i>
+                <p class="text-sm font-medium flex-1">{{ actionNotice }}</p>
+                <button @click="actionNotice = &quot;&quot;" type="button" class="p-1 rounded hover:bg-amber-200 dark:hover:bg-amber-900" aria-label="Tutup pemberitahuan"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </transition>
+
         <!-- FULL SCREEN MODAL: PILIH BAHAN BAKU -->
                 <transition name="toast-slide">
                     <div v-if="activeIngredientSelectIdx !== null" class="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex flex-col h-[100dvh] w-full overflow-hidden">
@@ -174,7 +183,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.1 (HPP Safety & Sort Reset)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.2 (HPP Safety & Filter Reset)</p>
                 </div>
             </div>
 
@@ -438,7 +447,7 @@
                                 <option value="hpp_desc">HPP Tertinggi</option>
                                 <option value="date_desc">Terbaru Diubah</option>
                             </select>
-                            <button @click="recipeSort = 'name_asc'" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Kembalikan urutan resep ke A-Z"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Sort By</button>
+                            <button @click="resetRecipeFiltersAndSort()" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Reset pencarian, kategori, dan urutan resep"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Filter &amp; Sort</button>
                             <button v-if="!isKitchenMode" @click="openRecipeModal(null, recipeListTab)" class="py-2 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold flex items-center gap-1 shadow-sm transition">
                                 <i class="fa-solid fa-plus"></i> Tambah {{ recipeListTab === 'menu' ? 'Menu' : 'Prep' }}
                             </button>
@@ -628,7 +637,7 @@
                                 <option value="brand_asc">A-Z Brand</option>
                                 <option value="date_desc">Terbaru Diubah</option>
                             </select>
-                            <button @click="ingredientSort = 'name_asc'" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Kembalikan urutan bahan ke A-Z"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Sort By</button>
+                            <button @click="resetIngredientFiltersAndSort()" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Reset pencarian, kategori, supplier, dan urutan bahan"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Filter &amp; Sort</button>
                         </div>
 
                         <div v-if="filteredAndSortedIngredients.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
@@ -1166,7 +1175,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.1 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.2 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1331,6 +1340,7 @@
                     // Network State
                     isOnline: navigator.onLine,
                     showOnlineToast: false,
+                    actionNotice: '',
 
                     authMode: 'login', 
                     authForm: { email: '', password: '' },
@@ -1730,11 +1740,16 @@
                     return [...new Set(issues)];
                 },
                 isIngredientUsed(id) {
-                    return this.recipes.some(recipe => (recipe.items || []).some(item => item.ingredientId === id));
+                    const targetId = String(id);
+                    return this.recipes.some(recipe => (recipe.items || []).some(item =>
+                        String(item.ingredientId ?? item.ingredient_id ?? '') === targetId
+                    ));
                 },
                 isRecipeUsed(id) {
                     const ref = `recipe_${id}`;
-                    return this.recipes.some(recipe => recipe.id !== id && (recipe.items || []).some(item => item.ingredientId === ref));
+                    return this.recipes.some(recipe => recipe.id !== id && (recipe.items || []).some(item =>
+                        String(item.ingredientId ?? item.ingredient_id ?? '') === ref
+                    ));
                 },
                 getIngredientName(id) { 
                     if (id && id.startsWith('recipe_')) {
@@ -1883,6 +1898,20 @@
                     if (confirm("Hapus?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); } catch (error) { console.error(error); alert("Supplier gagal dihapus."); } } 
                 },
 
+                resetIngredientFiltersAndSort() {
+                    this.ingredientSearch = '';
+                    this.ingredientCategoryFilter = 'All';
+                    this.ingredientSupplierFilter = 'All';
+                    this.ingredientSort = 'name_asc';
+                    this.actionNotice = 'Filter dan urutan bahan baku sudah direset.';
+                },
+                resetRecipeFiltersAndSort() {
+                    this.recipeSearch = '';
+                    this.recipeCategoryFilter = 'All';
+                    this.recipeSort = 'name_asc';
+                    this.actionNotice = 'Filter dan urutan resep sudah direset.';
+                },
+
                 openIngredientModal(ing = null) {
                     this.editingIngredientId = ing ? ing.id : null;
                     this.ingredientForm = ing ? { ...ing } : { name: '', brand: '', category: '', supplierId: '', buyPrice: 0, buyQty: 1, unit: 'gram', yieldPercent: 100 };
@@ -1919,7 +1948,7 @@
                 async deleteIngredient(id) {
                     const ingredient = this.getIngredient(id);
                     if (this.isIngredientUsed(id)) {
-                        alert(`Bahan "${ingredient?.name || 'ini'}" masih digunakan dalam satu atau lebih resep. Hapus atau ganti bahan tersebut dari resep terlebih dahulu agar HPP tidak berubah menjadi nol.`);
+                        this.actionNotice = `Bahan "${ingredient?.name || 'ini'}" tidak bisa dihapus karena masih digunakan dalam satu atau lebih resep. Ganti atau hapus bahan tersebut dari resep terlebih dahulu.`;
                         return;
                     }
                     if (confirm(`Hapus bahan "${ingredient?.name || 'ini'}"?`)) {
@@ -2024,7 +2053,7 @@
                 async deleteRecipe(id) {
                     const recipe = this.normalizedRecipes.find(r => r.id === id);
                     if (this.isRecipeUsed(id)) {
-                        alert(`Sub-resep "${recipe?.name || 'ini'}" masih digunakan oleh resep lain. Ganti atau hapus pemakaiannya terlebih dahulu agar HPP resep utama tidak menjadi nol.`);
+                        this.actionNotice = `Sub-resep "${recipe?.name || 'ini'}" tidak bisa dihapus karena masih digunakan oleh resep lain. Ganti atau hapus pemakaiannya terlebih dahulu.`;
                         return;
                     }
                     if (confirm(`Hapus resep "${recipe?.name || 'ini'}"?`)) {

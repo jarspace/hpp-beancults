@@ -1,4 +1,4 @@
-# HPP Beancults — v8.7.1
+# HPP Beancults — v8.7.2
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
@@ -30,9 +30,9 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - BEP saat ini masih berupa estimasi rata-rata per menu, bukan BEP berbobot berdasarkan bauran penjualan aktual.
 
 
-## Perubahan v8.7.1
+## Perubahan v8.7.2
 - Mencegah penghapusan bahan baku yang masih digunakan dalam resep.
 - Mencegah penghapusan sub-resep yang masih digunakan resep lain.
 - Menampilkan peringatan pada kartu resep jika ditemukan bahan/sub-resep hilang, satuan tidak cocok, atau takaran tidak valid.
 - Menambahkan pilihan pengurutan resep dan tombol Reset Sort By pada daftar resep dan bahan baku.
-- Reset Sort By mengembalikan urutan ke A-Z tanpa menghapus filter kategori, supplier, atau pencarian.
+- Reset Filter & Sort mengembalikan urutan ke A-Z sekaligus menghapus pencarian dan filter kategori; pada bahan baku, filter supplier juga direset.
