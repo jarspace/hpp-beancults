@@ -75,7 +75,7 @@
 
         <!-- GLOBAL FLOATING ACTION TOAST -->
         <transition name="action-toast">
-            <div v-if="actionToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1300] max-w-[calc(100%-2rem)] px-4 py-3 rounded-xl shadow-2xl text-white text-sm font-semibold flex items-center gap-2 print:hidden"
+            <div v-if="actionToast" class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[1300] max-w-[calc(100%-2rem)] px-4 py-3 rounded-xl shadow-2xl text-white text-sm font-semibold flex items-center gap-2 print:hidden"
                  :class="actionToastType === 'error' ? 'bg-red-600' : actionToastType === 'warning' ? 'bg-amber-600' : 'bg-emerald-600'"
                  role="status" aria-live="polite">
                 <i :class="actionToastType === 'error' ? 'fa-solid fa-circle-xmark' : actionToastType === 'warning' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-check'"></i>
@@ -196,7 +196,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.4 (Floating Action Toast)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.5 (Mobile Toast Position)</p>
                 </div>
             </div>
 
@@ -1215,7 +1215,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.4 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.5 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>

@@ -1,4 +1,4 @@
-# HPP Beancults — v8.7.4
+# HPP Beancults — v8.7.5
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
@@ -51,3 +51,7 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Notifikasi otomatis hilang setelah sekitar 2,8 detik dan dapat ditutup manual.
 - Peringatan ketika bahan/sub-resep masih digunakan juga tampil sebagai notifikasi mengambang.
 - Notifikasi sukses muncul setelah operasi Firestore berhasil diselesaikan.
+
+
+## Perubahan v8.7.5
+- Posisi notifikasi mengambang dinaikkan agar berada di atas navigasi bawah, termasuk memperhitungkan safe area perangkat.
