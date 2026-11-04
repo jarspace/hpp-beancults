@@ -206,7 +206,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.7 (Toast & Recipe Timestamps)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.9 (Supplier Timestamps & Validation)</p>
                 </div>
             </div>
 
@@ -719,9 +719,9 @@
                                     <div class="flex justify-between items-end pt-1">
                                         <div>
                                             <div class="text-[10px] text-slate-400">Supplier: <span class="font-medium text-slate-600 dark:text-slate-300">{{ getSupplierName(ing.supplierId) }}</span></div>
-                                            <!-- NEW: TIMESTAMP DISPLAY IN INGREDIENTS LIST -->
-                                            <div class="text-[9px] text-slate-400 mt-0.5 italic">
-                                                <i class="fa-regular fa-clock text-[8px] mr-0.5"></i> Diubah: {{ formatDate(ing.updatedAt) }}
+                                            <div class="text-[9px] text-slate-400 mt-0.5 italic leading-relaxed">
+                                                <div><i class="fa-regular fa-calendar-plus text-[8px] mr-0.5"></i>Dibuat: {{ ing.createdAt ? formatDate(ing.createdAt) : 'Belum tersedia (bahan lama)' }}</div>
+                                                <div><i class="fa-regular fa-clock text-[8px] mr-0.5"></i>Terakhir diubah: {{ ing.updatedAt ? formatDate(ing.updatedAt) : 'Belum tersedia' }}</div>
                                             </div>
                                         </div>
                                         <div v-if="!isKitchenMode" class="text-xs font-bold text-amber-800 dark:text-amber-300 font-mono bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded shadow-sm border border-amber-200 dark:border-amber-800/50">
@@ -767,6 +767,7 @@
                                         <h3 class="font-bold text-slate-900 dark:text-white text-base">{{ sup.name }}</h3>
                                         <p v-if="sup.phone" class="text-xs text-slate-600 dark:text-slate-400 font-mono"><i class="fa-brands fa-whatsapp text-green-500 w-4 text-center"></i> {{ sup.phone }}</p>
                                         <p v-if="sup.address" class="text-xs text-slate-500 dark:text-slate-400"><i class="fa-solid fa-location-dot text-slate-400 w-4 text-center"></i> {{ sup.address }}</p>
+                                        <div class="pt-1 text-[10px] text-slate-400 space-y-0.5"><div><i class="fa-regular fa-calendar-plus mr-1"></i>Dibuat: {{ sup.createdAt ? formatDate(sup.createdAt) : 'Belum tersedia (supplier lama)' }}</div><div><i class="fa-regular fa-clock mr-1"></i>Terakhir diubah: {{ sup.updatedAt ? formatDate(sup.updatedAt) : 'Belum tersedia' }}</div></div>
                                     </div>
                                     <div class="flex gap-1 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-sm">
                                         <button @click="openSupplierModal(sup)" class="text-slate-500 hover:text-amber-600 px-2 py-1.5 text-sm border-r border-slate-200 dark:border-slate-700"><i class="fa-solid fa-pen"></i></button>
@@ -1229,7 +1230,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.7 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.9 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1986,14 +1987,21 @@
                     this.showSupplierModal = true;
                 },
                 async saveSupplier() {
-                    const nameToSave = this.supplierForm.name.trim().toLowerCase();
-                    const exists = this.suppliers.find(s => s.name.toLowerCase() === nameToSave && s.id !== this.editingSupplierId);
-                    if (exists) { alert("Supplier dengan nama '" + this.supplierForm.name + "' sudah ada!"); return; }
-                    
-                    const data = { ...this.supplierForm, updatedAt: Date.now() };
-                    const ref = collection(db, `users/${this.user.uid}/suppliers`);
+                    const cleanName = (this.supplierForm.name || '').trim();
+                    if (!cleanName) { this.showActionToast('Nama supplier wajib diisi.', 'warning'); return; }
+                    const nameToSave = cleanName.toLocaleLowerCase('id-ID');
+                    const exists = this.suppliers.find(s => (s.name || '').trim().toLocaleLowerCase('id-ID') === nameToSave && s.id !== this.editingSupplierId);
+                    if (exists) { this.showActionToast('Supplier dengan nama tersebut sudah ada.', 'warning'); return; }
+
                     const wasEditing = !!this.editingSupplierId;
-                    try { if (wasEditing) await updateDoc(doc(ref, this.editingSupplierId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Supplier gagal disimpan. Periksa koneksi.'); return; }
+                    const existingSupplier = wasEditing ? this.suppliers.find(s => s.id === this.editingSupplierId) : null;
+                    const now = Date.now();
+                    const data = { ...this.supplierForm, name: cleanName, createdAt: wasEditing ? (existingSupplier?.createdAt || null) : now, updatedAt: now };
+                    const ref = collection(db, `users/${this.user.uid}/suppliers`);
+                    try {
+                        if (wasEditing) await updateDoc(doc(ref, this.editingSupplierId), data);
+                        else await addDoc(ref, data);
+                    } catch (error) { console.error(error); this.showActionToast('Supplier gagal disimpan. Periksa koneksi.', 'error'); return; }
                     this.showSupplierModal = false;
                     this.showActionToast(wasEditing ? 'Supplier berhasil diperbarui.' : 'Supplier berhasil ditambahkan.');
                 },
@@ -2043,9 +2051,11 @@
                         return; 
                     }
                     
-                    const data = { ...this.ingredientForm, updatedAt: Date.now() };
-                    const ref = collection(db, `users/${this.user.uid}/ingredients`);
+                    const now = Date.now();
                     const wasEditing = !!this.editingIngredientId;
+                    const existingIngredient = wasEditing ? this.ingredients.find(i => i.id === this.editingIngredientId) : null;
+                    const data = { ...this.ingredientForm, createdAt: wasEditing ? (existingIngredient?.createdAt || null) : now, updatedAt: now };
+                    const ref = collection(db, `users/${this.user.uid}/ingredients`);
                     try { if (wasEditing) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Bahan baku gagal disimpan. Periksa koneksi.'); return; }
                     this.showIngredientModal = false;
                     this.showActionToast(wasEditing ? 'Bahan baku berhasil diperbarui.' : 'Bahan baku berhasil ditambahkan.');

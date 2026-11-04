@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hpp-pro-cache-v8.7.7';
+const CACHE_NAME = 'hpp-pro-cache-v8.7.9';
 const ASSETS = [
     './',
     './index.html'

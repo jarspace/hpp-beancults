@@ -71,3 +71,17 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Resep baru menyimpan `createdAt` dan `updatedAt` (timestamp milidetik).
 - Saat resep diedit, `createdAt` dipertahankan dan `updatedAt` diperbarui.
 - Kartu resep menampilkan tanggal dibuat dan terakhir diubah. Resep lama tanpa `createdAt` ditandai belum tersedia, tanpa mengarang tanggal.
+
+
+## v8.7.8
+- Menambahkan cap waktu Dibuat dan Terakhir diubah pada kartu bahan baku.
+- Bahan baru menyimpan createdAt dan updatedAt; saat edit, createdAt dipertahankan.
+- Bahan lama tanpa createdAt ditandai belum tersedia, tanpa tanggal perkiraan.
+
+
+## v8.7.9
+- Menambahkan timestamp dibuat dan terakhir diubah pada kartu supplier.
+- Supplier baru menyimpan `createdAt` dan `updatedAt`; saat diedit, `createdAt` dipertahankan.
+- Validasi nama supplier wajib diisi dan mencegah duplikat tanpa membedakan huruf besar/kecil serta spasi di awal/akhir.
+- Validasi duplikat dan kegagalan simpan menggunakan floating toast yang konsisten.
+- Tidak mengubah rumus HPP atau struktur koleksi Firestore.
