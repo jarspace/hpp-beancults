@@ -107,3 +107,18 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Added a sticky recipe-composition summary showing selected ingredients, quantities, and provisional ingredient total while scrolling.
 - Added live integrity hints for missing ingredients/sub-recipes, invalid quantities, incompatible units, invalid ingredient purchase data, and sub-recipe cycles.
 - Existing HPP calculation formulas and Firestore paths were not changed.
+
+
+## v8.9.1 – Compact Recipe Composition Summary
+- Ringkasan komposisi resep dibuat ringkas dan sticky.
+- Daftar bahan terpilih dapat dibuka/tutup saat diperlukan.
+- Jumlah bahan dan total sementara tetap terlihat saat daftar ditutup.
+- Tidak mengubah perhitungan HPP, struktur Firestore, atau alur penyimpanan.
+
+
+## v8.9.2 – Compact Mobile Price Panel
+- Reduced mobile recipe-footer padding and vertical spacing.
+- Made modal cost and margin cards more compact while preserving all inputs and values.
+- Reduced the selling-price summary block height.
+- Kept Cancel and Save buttons at a practical touch height.
+- No changes to pricing formulas, HPP calculations, Firestore paths, or save behavior.
