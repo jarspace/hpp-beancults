@@ -869,6 +869,31 @@
 
                             <!-- SCROLLABLE MIDDLE -->
                             <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-slate-50 dark:bg-slate-900 pb-6">
+                                <!-- RINGKASAN KOMPOSISI: tetap terlihat saat daftar bahan digulir -->
+                                <div class="sticky top-0 z-30 -mx-4 px-4 pt-1 pb-3 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <div class="min-w-0">
+                                            <div class="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Ringkasan komposisi</div>
+                                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100">{{ recipeForm.items.filter(item => item.ingredientId).length }} bahan dipilih</div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <div class="text-[9px] text-slate-500 dark:text-slate-400 uppercase">Total sementara</div>
+                                            <div class="text-sm font-bold font-mono text-amber-700 dark:text-amber-400">Rp {{ formatNumber(recipeForm.items.reduce((sum, item) => sum + calculateItemCost(item, [editingRecipeId].filter(Boolean)), 0)) }}</div>
+                                        </div>
+                                    </div>
+                                    <div v-if="recipeForm.items.some(item => item.ingredientId)" class="max-h-20 overflow-y-auto overscroll-contain flex flex-wrap gap-1.5 pr-1">
+                                        <span v-for="(item, idx) in recipeForm.items.filter(item => item.ingredientId)" :key="'summary-'+idx" class="inline-flex items-center gap-1 max-w-full rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-1 text-[10px] text-slate-700 dark:text-slate-200">
+                                            <span class="truncate max-w-[9rem]">{{ getIngredientName(item.ingredientId) }}</span>
+                                            <strong class="shrink-0">{{ item.qty || 0 }} {{ item.unit || getIngredientUnit(item.ingredientId) }}</strong>
+                                        </span>
+                                    </div>
+                                    <div v-else class="text-[10px] text-slate-400 italic">Belum ada bahan dipilih.</div>
+                                    <div v-if="getRecipeIntegrityIssues(recipeForm).length" class="mt-2 text-[10px] font-semibold text-red-600 dark:text-red-400 flex items-start gap-1">
+                                        <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                                        <span>{{ getRecipeIntegrityIssues(recipeForm)[0] }}<span v-if="getRecipeIntegrityIssues(recipeForm).length > 1"> (+{{ getRecipeIntegrityIssues(recipeForm).length - 1 }} masalah lainnya)</span></span>
+                                    </div>
+                                </div>
+
                                 <div class="flex justify-between items-center mb-2">
                                     <label class="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wide">Komposisi Bahan</label>
                                     <button type="button" @click="addRecipeItemRow" class="text-amber-700 hover:text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase shadow-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i> Tambah Item</button>
@@ -1239,7 +1264,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.8.1 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.0 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1979,6 +2004,35 @@
                     if (source === target) return 1;
                     const conversions = { 'kg:gram': 1 / 1000, 'gram:kg': 1000, 'liter:ml': 1 / 1000, 'ml:liter': 1000 };
                     return conversions[`${source}:${target}`] ?? null;
+                },
+                getRecipeIntegrityIssues(recipe, visited = []) {
+                    const issues = [];
+                    if (!recipe || !Array.isArray(recipe.items)) return ['Komposisi resep tidak valid.'];
+                    const recipeId = recipe.id || this.editingRecipeId || '__draft__';
+                    if (visited.includes(recipeId)) return ['Terdapat siklus sub-resep.'];
+                    const nextVisited = [...visited, recipeId];
+                    recipe.items.forEach((item, index) => {
+                        const line = index + 1;
+                        if (!item || !item.ingredientId) { issues.push(`Bahan pada baris ${line} belum dipilih.`); return; }
+                        const qty = Number(item.qty);
+                        if (!Number.isFinite(qty) || qty <= 0) issues.push(`Takaran pada baris ${line} harus lebih dari 0.`);
+                        if (item.ingredientId.startsWith('recipe_')) {
+                            const subId = item.ingredientId.slice(7);
+                            const sub = this.normalizedRecipes.find(r => r.id === subId);
+                            if (!sub) { issues.push(`Sub-resep pada baris ${line} tidak ditemukan.`); return; }
+                            if (nextVisited.includes(subId) || this.recipeHasDependency(subId, recipeId, [])) { issues.push(`Siklus sub-resep terdeteksi pada baris ${line}.`); return; }
+                            if (this.unitMultiplier(sub.yieldUnit || 'porsi', item.unit || sub.yieldUnit || 'porsi') === null) issues.push(`Satuan sub-resep pada baris ${line} tidak cocok.`);
+                            const nestedIssues = this.getRecipeIntegrityIssues(sub, nextVisited);
+                            nestedIssues.forEach(problem => issues.push(`${sub.name}: ${problem}`));
+                        } else {
+                            const ing = this.getIngredient(item.ingredientId);
+                            if (!ing) issues.push(`Bahan pada baris ${line} tidak ditemukan.`);
+                            else if (this.unitMultiplier(ing.unit, item.unit || ing.unit) === null) issues.push(`Satuan bahan ${ing.name} pada baris ${line} tidak cocok.`);
+                            else if (!Number.isFinite(Number(ing.buyPrice)) || Number(ing.buyPrice) < 0 || !Number.isFinite(Number(ing.buyQty)) || Number(ing.buyQty) <= 0) issues.push(`Data harga atau kuantitas bahan ${ing.name} tidak valid.`);
+                        }
+                    });
+                    if (recipe.type === 'prep' && (!Number.isFinite(Number(recipe.yieldQty)) || Number(recipe.yieldQty) <= 0)) issues.push('Hasil produksi sub-resep harus lebih dari 0.');
+                    return [...new Set(issues)];
                 },
                 calculateItemCost(item, visited = []) {
                     if (!item || !item.ingredientId) return 0;

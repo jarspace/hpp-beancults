@@ -101,3 +101,9 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Validasi seluruh struktur dilakukan sebelum konfirmasi dan penulisan.
 - Pengaturan tetap dipulihkan ke dokumen `settings/preferences`; merge tetap dipertahankan dan dokumen lain tidak dihapus.
 - Tidak mengubah rumus HPP atau Firestore Security Rules.
+
+
+## v8.9.0 – Recipe Integrity & Composition UX
+- Added a sticky recipe-composition summary showing selected ingredients, quantities, and provisional ingredient total while scrolling.
+- Added live integrity hints for missing ingredients/sub-recipes, invalid quantities, incompatible units, invalid ingredient purchase data, and sub-recipe cycles.
+- Existing HPP calculation formulas and Firestore paths were not changed.
