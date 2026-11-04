@@ -1,4 +1,12 @@
-# HPP Beancults v8.9.4
+# HPP Beancults v8.9.5
+
+## Perubahan v8.9.5 – Compact ingredient cards
+- Kartu komposisi bahan dibuat lebih pendek dengan mengurangi padding dan jarak vertikal.
+- Tombol pemilihan bahan tetap memiliki tinggi sentuh yang nyaman.
+- Input takaran dipadatkan menjadi 88 × 46 px; satuan dan HPP item tetap terlihat.
+- Rumus HPP, struktur Firestore, dan alur penyimpanan tidak diubah.
+
+
 
 ## Perubahan v8.9.4 – Composition-first mobile layout
 - Pada layar HP, panel perhitungan harga jual dimulai dalam kondisi ringkas.
