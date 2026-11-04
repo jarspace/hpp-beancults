@@ -174,7 +174,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.0 (Weighted BEP Sales Mix)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.1 (HPP Safety & Sort Reset)</p>
                 </div>
             </div>
 
@@ -431,6 +431,14 @@
                                 <option value="All">Semua Kategori</option>
                                 <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                             </select>
+                            <select v-model="recipeSort" aria-label="Urutkan resep" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-medium">
+                                <option value="name_asc">A-Z Nama</option>
+                                <option value="name_desc">Z-A Nama</option>
+                                <option value="margin_desc">Margin Tertinggi</option>
+                                <option value="hpp_desc">HPP Tertinggi</option>
+                                <option value="date_desc">Terbaru Diubah</option>
+                            </select>
+                            <button @click="recipeSort = 'name_asc'" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Kembalikan urutan resep ke A-Z"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Sort By</button>
                             <button v-if="!isKitchenMode" @click="openRecipeModal(null, recipeListTab)" class="py-2 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold flex items-center gap-1 shadow-sm transition">
                                 <i class="fa-solid fa-plus"></i> Tambah {{ recipeListTab === 'menu' ? 'Menu' : 'Prep' }}
                             </button>
@@ -454,6 +462,9 @@
                                                 </span>
                                             </div>
                                             <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ recipe.name }}</h3>
+                                            <div v-if="getRecipeIssues(recipe).length" class="mt-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-[11px] leading-relaxed">
+                                                <i class="fa-solid fa-triangle-exclamation mr-1"></i><strong>Perlu diperiksa:</strong> {{ getRecipeIssues(recipe).join(' • ') }}. HPP belum dapat dianggap valid.
+                                            </div>
                                         </div>
                                         
                                         <!-- Actions: Print, Edit, Delete -->
@@ -611,12 +622,13 @@
                                 <option value="All">Semua Supplier</option>
                                 <option v-for="sup in suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}</option>
                             </select>
-                            <select v-model="ingredientSort" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-medium">
+                            <select v-model="ingredientSort" aria-label="Urutkan bahan baku" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-medium">
                                 <option value="name_asc">A-Z Nama</option>
                                 <option value="name_desc">Z-A Nama</option>
                                 <option value="brand_asc">A-Z Brand</option>
                                 <option value="date_desc">Terbaru Diubah</option>
                             </select>
+                            <button @click="ingredientSort = 'name_asc'" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Kembalikan urutan bahan ke A-Z"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Sort By</button>
                         </div>
 
                         <div v-if="filteredAndSortedIngredients.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
@@ -1154,7 +1166,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.0 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.1 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1698,6 +1710,32 @@
                 getSupplierName(id) { const s = this.suppliers.find(x => x.id === id); return s ? s.name : '-'; },
                 
                 getIngredient(id) { return this.ingredients.find(i => i.id === id); },
+                getRecipeIssues(recipe) {
+                    const issues = [];
+                    (recipe?.items || []).forEach((item, index) => {
+                        if (!item?.ingredientId) { issues.push(`Baris ${index + 1} belum memilih bahan`); return; }
+                        const qty = Number(item.qty);
+                        if (!Number.isFinite(qty) || qty <= 0) issues.push(`Takaran baris ${index + 1} tidak valid`);
+                        if (item.ingredientId.startsWith('recipe_')) {
+                            const subId = item.ingredientId.slice(7);
+                            const sub = this.normalizedRecipes.find(r => r.id === subId);
+                            if (!sub) issues.push(`Sub-resep pada baris ${index + 1} tidak ditemukan`);
+                            else if (this.unitMultiplier(sub.yieldUnit || 'porsi', item.unit || sub.yieldUnit || 'porsi') === null) issues.push(`Satuan sub-resep pada baris ${index + 1} tidak cocok`);
+                        } else {
+                            const ingredient = this.getIngredient(item.ingredientId);
+                            if (!ingredient) issues.push(`Bahan pada baris ${index + 1} tidak ditemukan`);
+                            else if (this.unitMultiplier(ingredient.unit, item.unit || ingredient.unit) === null) issues.push(`Satuan bahan ${ingredient.name} tidak cocok`);
+                        }
+                    });
+                    return [...new Set(issues)];
+                },
+                isIngredientUsed(id) {
+                    return this.recipes.some(recipe => (recipe.items || []).some(item => item.ingredientId === id));
+                },
+                isRecipeUsed(id) {
+                    const ref = `recipe_${id}`;
+                    return this.recipes.some(recipe => recipe.id !== id && (recipe.items || []).some(item => item.ingredientId === ref));
+                },
                 getIngredientName(id) { 
                     if (id && id.startsWith('recipe_')) {
                         const r = this.normalizedRecipes.find(x => x.id === id.replace('recipe_', ''));
@@ -1878,8 +1916,16 @@
                     try { if (this.editingIngredientId) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Bahan baku gagal disimpan. Periksa koneksi.'); return; }
                     this.showIngredientModal = false;
                 },
-                async deleteIngredient(id) { 
-                    if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); } catch (error) { console.error(error); alert("Bahan baku gagal dihapus."); } } 
+                async deleteIngredient(id) {
+                    const ingredient = this.getIngredient(id);
+                    if (this.isIngredientUsed(id)) {
+                        alert(`Bahan "${ingredient?.name || 'ini'}" masih digunakan dalam satu atau lebih resep. Hapus atau ganti bahan tersebut dari resep terlebih dahulu agar HPP tidak berubah menjadi nol.`);
+                        return;
+                    }
+                    if (confirm(`Hapus bahan "${ingredient?.name || 'ini'}"?`)) {
+                        try { await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); }
+                        catch (error) { console.error(error); alert("Bahan baku gagal dihapus."); }
+                    }
                 },
 
                 openRecipeModal(recipe = null, forceType = null) {
@@ -1975,8 +2021,16 @@
                     this.recipeListTab = this.recipeForm.type; 
                     this.showRecipeModal = false;
                 },
-                async deleteRecipe(id) { 
-                    if (confirm("Hapus resep ini?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); } catch (error) { console.error(error); alert("Resep gagal dihapus."); } } 
+                async deleteRecipe(id) {
+                    const recipe = this.normalizedRecipes.find(r => r.id === id);
+                    if (this.isRecipeUsed(id)) {
+                        alert(`Sub-resep "${recipe?.name || 'ini'}" masih digunakan oleh resep lain. Ganti atau hapus pemakaiannya terlebih dahulu agar HPP resep utama tidak menjadi nol.`);
+                        return;
+                    }
+                    if (confirm(`Hapus resep "${recipe?.name || 'ini'}"?`)) {
+                        try { await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); }
+                        catch (error) { console.error(error); alert("Resep gagal dihapus."); }
+                    }
                 },
 
                 printSOP(recipe) {

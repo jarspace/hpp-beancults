@@ -1,4 +1,4 @@
-# HPP Beancults — v8.7.0
+# HPP Beancults — v8.7.1
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
@@ -28,3 +28,11 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Satuan yang didukung langsung: gram, kg, ml, liter, pcs, dan porsi. Konversi hanya dilakukan dalam kelompok massa atau volume yang kompatibel.
 - Yield bahan diterapkan sebagai hasil bersih dari kuantitas pembelian.
 - BEP saat ini masih berupa estimasi rata-rata per menu, bukan BEP berbobot berdasarkan bauran penjualan aktual.
+
+
+## Perubahan v8.7.1
+- Mencegah penghapusan bahan baku yang masih digunakan dalam resep.
+- Mencegah penghapusan sub-resep yang masih digunakan resep lain.
+- Menampilkan peringatan pada kartu resep jika ditemukan bahan/sub-resep hilang, satuan tidak cocok, atau takaran tidak valid.
+- Menambahkan pilihan pengurutan resep dan tombol Reset Sort By pada daftar resep dan bahan baku.
+- Reset Sort By mengembalikan urutan ke A-Z tanpa menghapus filter kategori, supplier, atau pencarian.
