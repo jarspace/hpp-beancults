@@ -1,3 +1,16 @@
+# HPP Beancults v8.9.6
+
+## Perubahan v8.9.6 – Ultra compact recipe form
+- Kartu bahan dipadatkan lagi dengan pengurangan padding, jarak, dan tinggi kontrol secara terukur.
+- Ringkasan jumlah bahan dan total sementara dibuat lebih tipis; daftar ringkasan saat dibuka juga lebih rapat.
+- Panel Biaya Ops/Overhead diubah menjadi kontrol satu baris yang lebih pendek; keterangan sekunder disembunyikan pada layar HP.
+- Bar ringkas HPP dan harga jual di footer dipendekkan.
+- Target sentuh pemilihan bahan tetap 38 px dan input takaran 40 px agar masih layak digunakan.
+- Rumus HPP, margin, struktur Firestore, dan penyimpanan tidak diubah.
+
+## Catatan pengujian
+- ZIP dan sintaks JavaScript diperiksa secara lokal. Perlu pengujian visual pada HP untuk memastikan ukuran baru nyaman dan tidak terlalu kecil.
+
 # HPP Beancults v8.9.5
 
 ## Perubahan v8.9.5 – Compact ingredient cards

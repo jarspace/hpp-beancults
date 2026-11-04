@@ -153,6 +153,41 @@
             .recipe-qty-row > div:last-child > div:last-child { font-size: 13px !important; line-height: 1.2rem !important; }
             .recipe-qty-row > div:last-child > div:first-child { font-size: 8px !important; }
         }
+    
+        /* v8.9.6: reclaim vertical space from ingredient cards, overhead and running total */
+        @media (max-width: 640px) {
+            .recipe-composition-summary { padding: .12rem .4rem !important; margin-bottom: .15rem !important; }
+            .recipe-composition-summary summary { min-height: 34px !important; padding: .12rem .25rem !important; gap: .35rem !important; }
+            .recipe-composition-summary summary .text-xs { font-size: 9px !important; line-height: 1rem !important; }
+            .recipe-composition-summary summary .text-sm { font-size: 11px !important; line-height: 1.1rem !important; }
+            .recipe-composition-summary summary .font-mono { font-size: 11px !important; line-height: 1.1rem !important; }
+            .recipe-composition-summary > div:last-child { padding-top: .15rem !important; margin-top: .15rem !important; }
+            .recipe-composition-summary > div:last-child > div { padding-top: .1rem !important; padding-bottom: .1rem !important; font-size: 9px !important; line-height: 1rem !important; }
+            .recipe-composition-heading { min-height: 32px !important; margin-bottom: .15rem !important; }
+            .recipe-composition-heading button { min-height: 36px !important; padding: .3rem .55rem !important; }
+            .recipe-item-card { padding: .32rem .42rem !important; gap: .18rem !important; margin-bottom: .22rem !important; border-radius: .55rem !important; }
+            .recipe-item-card > div:first-of-type { padding-right: 1.35rem !important; }
+            .recipe-item-select { min-height: 38px !important; padding: .25rem .45rem !important; font-size: 12px !important; }
+            .recipe-qty-row { gap: .35rem !important; }
+            .recipe-qty-row label { font-size: 8px !important; line-height: .9rem !important; }
+            .recipe-qty-input { width: 78px !important; min-height: 40px !important; height: 40px !important; font-size: 16px !important; }
+            .recipe-qty-row select { min-height: 36px !important; font-size: 11px !important; }
+            .recipe-qty-row > div:last-child { min-width: 70px !important; }
+            .recipe-qty-row > div:last-child > div:last-child { font-size: 11px !important; line-height: 1rem !important; }
+            .recipe-qty-row > div:last-child > div:first-child { font-size: 7px !important; line-height: .8rem !important; }
+            /* Overhead: compact single-line control */
+            .recipe-scroll-area > div.mt-4.pt-4.border-t { margin-top: .35rem !important; padding-top: .35rem !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t > label { padding: .45rem .55rem !important; border-radius: .6rem !important; gap: .4rem !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label > div:first-child { gap: 0 !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label span:first-child { font-size: 9px !important; line-height: 1rem !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label span:nth-child(2) { display: none !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label > div:last-child { padding: .2rem .4rem !important; border-radius: .45rem !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label input { min-height: 32px !important; height: 32px !important; font-size: 13px !important; width: 76px !important; }
+            .recipe-price-compact-summary { min-height: 36px !important; gap: .3rem !important; padding: .05rem .15rem .25rem !important; }
+            .recipe-price-compact-summary .text-\[9px\] { font-size: 8px !important; }
+            .recipe-price-compact-summary strong { font-size: 12px !important; line-height: 1rem !important; }
+        }
+
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans min-h-screen print:bg-white">
@@ -1368,7 +1403,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.5 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.6 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
