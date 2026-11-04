@@ -85,3 +85,10 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Validasi nama supplier wajib diisi dan mencegah duplikat tanpa membedakan huruf besar/kecil serta spasi di awal/akhir.
 - Validasi duplikat dan kegagalan simpan menggunakan floating toast yang konsisten.
 - Tidak mengubah rumus HPP atau struktur koleksi Firestore.
+
+
+## v8.8.0 — Backup & Restore
+- Ekspor bahan, resep, supplier, dan pengaturan ke JSON.
+- Pemulihan memvalidasi versi backup dan UID akun yang sama.
+- Pemulihan menggabungkan data berdasarkan ID dokumen; tidak menghapus dokumen lain.
+- Proses restore dilakukan per dokumen; jika koneksi terputus di tengah proses, sebagian data mungkin sudah masuk. Jalankan ulang file backup yang sama setelah koneksi pulih.

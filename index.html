@@ -1226,11 +1226,20 @@
                                     <button type="submit" class="bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 text-white px-3 rounded-lg text-sm transition-colors"><i class="fa-solid fa-plus"></i></button>
                                 </form>
                             </div>
+                            <hr class="border-slate-100 dark:border-slate-700">
+                            <div class="space-y-3">
+                                <label class="font-bold text-slate-800 dark:text-slate-300 text-xs uppercase tracking-wide"><i class="fa-solid fa-database text-slate-400 mr-1"></i> Backup & Pemulihan Data</label>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">Simpan salinan bahan, resep, supplier, dan pengaturan toko ke file JSON. Pemulihan akan menggabungkan data: dokumen dengan ID sama diperbarui, dokumen lain tetap ada.</p>
+                                <button type="button" @click="exportBackup" class="w-full px-4 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold flex items-center justify-center gap-2"><i class="fa-solid fa-download"></i> Unduh Backup JSON</button>
+                                <input ref="backupFileInput" type="file" accept=".json,application/json" class="hidden" @change="handleBackupFile">
+                                <button type="button" @click="$refs.backupFileInput.click()" :disabled="backupBusy" class="w-full px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-bold flex items-center justify-center gap-2"><i class="fa-solid fa-upload"></i> {{ backupBusy ? 'Memproses...' : 'Pulihkan dari Backup JSON' }}</button>
+                                <p class="text-[10px] text-amber-700 dark:text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Gunakan akun yang sama saat membuat backup. Pemulihan tidak menghapus dokumen yang sudah ada. Unduh backup terbaru sebelum melakukan pemulihan.</p>
+                            </div>
                         </div>
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.9 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.8.0 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1430,6 +1439,7 @@
                     ],
                     
                     showSettingsModal: false,
+                    backupBusy: false,
                     newCategoryName: '',
                     ingredientCategories: ['Daging', 'Dairy', 'Sayuran', 'Bumbu', 'Kemasan & Wadah', 'Bahan Penunjang', 'Lainnya'],
                     newIngredientCategory: '',
@@ -1816,6 +1826,64 @@
                 removeIngredientCategory(idx) { if(confirm("Hapus kategori bahan ini?")) { this.ingredientCategories.splice(idx, 1); this.saveUserSettings(); } },
                 addPlatform() { if(this.newPlatform.name && this.newPlatform.fee >= 0) { this.platforms.push({...this.newPlatform}); this.saveUserSettings(); this.newPlatform = { name: '', fee: 20 }; } },
                 removePlatform(idx) { if(confirm("Hapus platform ini?")) { this.platforms.splice(idx, 1); this.saveUserSettings(); } },
+
+                async exportBackup() {
+                    if (!this.user?.uid) { this.showActionToast('Silakan login terlebih dahulu.', 'warning'); return; }
+                    try {
+                        const settingsSnap = await getDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'));
+                        const backup = {
+                            app: 'HPP Beancults', backupVersion: 1, exportedAt: new Date().toISOString(), uid: this.user.uid,
+                            collections: {
+                                ingredients: this.ingredients.map(({ id, ...data }) => ({ id, ...data })),
+                                recipes: this.recipes.map(({ id, ...data }) => ({ id, ...data })),
+                                suppliers: this.suppliers.map(({ id, ...data }) => ({ id, ...data }))
+                            },
+                            settings: settingsSnap.exists() ? settingsSnap.data() : {
+                                categories: this.categories, ingredientCategories: this.ingredientCategories, platforms: this.platforms,
+                                storeName: this.storeName, kitchenPin: this.kitchenPin, fixedCost: this.fixedCost,
+                                bepSalesMix: this.bepSalesMix, targetMargin: this.targetMargin
+                            }
+                        };
+                        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `backup-hpp-beancults-${new Date().toISOString().slice(0,10)}.json`;
+                        document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+                        this.showActionToast('Backup berhasil diunduh. Simpan file di tempat aman.');
+                    } catch (error) { console.error('Backup export gagal:', error); this.showActionToast('Backup gagal dibuat. Periksa koneksi Firebase.', 'warning'); }
+                },
+                async handleBackupFile(event) {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) { this.showActionToast('Ukuran backup maksimal 10 MB.', 'warning'); return; }
+                    this.backupBusy = true;
+                    try {
+                        const backup = JSON.parse(await file.text());
+                        const groups = backup?.collections;
+                        const validArray = value => Array.isArray(value) && value.every(item => item && typeof item === 'object' && typeof item.id === 'string' && item.id.length > 0 && item.id.length <= 1500);
+                        if (backup?.app !== 'HPP Beancults' || backup?.backupVersion !== 1 || backup?.uid !== this.user?.uid || !groups || !validArray(groups.ingredients) || !validArray(groups.recipes) || !validArray(groups.suppliers) || !backup.settings || typeof backup.settings !== 'object' || Array.isArray(backup.settings)) {
+                            throw new Error('Format backup tidak valid atau backup berasal dari akun berbeda.');
+                        }
+                        const total = groups.ingredients.length + groups.recipes.length + groups.suppliers.length;
+                        if (total > 5000) throw new Error('Backup berisi terlalu banyak data (maksimal 5.000 dokumen).');
+                        const summary = `Backup berisi ${groups.ingredients.length} bahan, ${groups.recipes.length} resep, dan ${groups.suppliers.length} supplier. Dokumen dengan ID sama akan diperbarui; data lain tidak dihapus. Lanjutkan?`;
+                        if (!confirm(summary)) return;
+                        const base = `users/${this.user.uid}`;
+                        for (const [name, docs] of Object.entries(groups)) {
+                            for (const item of docs) {
+                                const { id, ...data } = item;
+                                await setDoc(doc(db, `${base}/${name}`, id), data, { merge: true });
+                            }
+                        }
+                        await setDoc(doc(db, `${base}/settings`, 'preferences'), backup.settings, { merge: true });
+                        this.showActionToast('Pemulihan selesai. Data yang ada telah digabungkan.');
+                    } catch (error) {
+                        console.error('Backup restore gagal:', error);
+                        this.showActionToast(error.message || 'Pemulihan gagal. Periksa file dan koneksi Firebase.', 'warning');
+                    } finally { this.backupBusy = false; }
+                },
 
                 formatDate(ts) { return ts ? new Date(ts).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute:'2-digit' }) : '-'; },
                 formatNumber(val) { return Math.round(val || 0).toLocaleString('id-ID'); },
