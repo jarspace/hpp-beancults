@@ -1,4 +1,4 @@
-# HPP Beancults v8.9.6
+# HPP Beancults v8.9.7
 
 ## Perubahan v8.9.6 – Ultra compact recipe form
 - Kartu bahan dipadatkan lagi dengan pengurangan padding, jarak, dan tinggi kontrol secara terukur.
@@ -33,3 +33,11 @@
 ## Catatan pengujian
 - Perlu diuji di perangkat HP: membuka/menutup panel harga, input margin dan harga manual, pemilihan bahan, input kuantitas, serta simpan menu dan prep.
 - Pemeriksaan lokal meliputi integritas ZIP dan sintaks JavaScript. Belum merupakan pengujian langsung terhadap Firebase atau seluruh perilaku browser/perangkat.
+
+
+## Perubahan v8.9.7 – Koreksi form mobile
+- Tombol hapus diberi ruang tersendiri agar tidak menimpa pemilih bahan.
+- Teks pemilih bahan dipersingkat menjadi “Pilih bahan…”.
+- Kolom takaran diperkecil.
+- Keterangan Biaya Ops / Overhead ditampilkan kembali.
+- Rumus HPP dan struktur data Firebase tidak diubah.

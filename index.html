@@ -188,6 +188,40 @@
             .recipe-price-compact-summary strong { font-size: 12px !important; line-height: 1rem !important; }
         }
 
+        /* v8.9.7: fix remove-button overlap, shorten selection prompt and restore overhead hint */
+        @media (max-width: 640px) {
+            .recipe-item-card > div:first-of-type { padding-right: 2.45rem !important; }
+            .recipe-item-card > button {
+                right: .3rem !important;
+                top: .3rem !important;
+                width: 30px !important;
+                height: 30px !important;
+                padding: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                z-index: 25 !important;
+            }
+            .recipe-item-card > button i { font-size: 15px !important; }
+            .recipe-item-select { min-height: 36px !important; padding: .2rem .4rem !important; font-size: 12px !important; }
+            .recipe-qty-input {
+                width: 68px !important;
+                min-height: 38px !important;
+                height: 38px !important;
+                padding: .2rem .3rem !important;
+                font-size: 15px !important;
+            }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label > div:first-child { flex: 1 1 auto !important; min-width: 0 !important; }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label span:nth-child(2) {
+                display: block !important;
+                font-size: 9px !important;
+                line-height: 1.15 !important;
+                margin-top: 2px !important;
+                white-space: normal !important;
+            }
+            .recipe-scroll-area > div.mt-4.pt-4.border-t label > div:last-child { flex: 0 0 auto !important; }
+        }
+
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 font-sans min-h-screen print:bg-white">
@@ -1048,7 +1082,7 @@
                                             <!-- Fitur Search di Dropdown Bahan Baku (Custom Select) -->
                                             <div class="relative z-20">
                                                 <button type="button" @click.prevent="openIngredientSelect(idx)" class="recipe-item-select w-full text-left px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
-                                                    <span class="truncate pr-2">{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
+                                                    <span class="truncate pr-2">{{ getIngredientName(item.ingredientId) || 'Pilih bahan…' }}</span>
                                                     <i class="fa-solid fa-chevron-right text-xs text-slate-400 shrink-0"></i>
                                                 </button>
                                             </div>
@@ -1403,7 +1437,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.6 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.7 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
