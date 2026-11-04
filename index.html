@@ -42,6 +42,8 @@
         /* Network Toast Animation */
         .toast-slide-enter-active, .toast-slide-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .toast-slide-enter-from, .toast-slide-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+        .action-toast-enter-active, .action-toast-leave-active { transition: opacity 0.22s ease, transform 0.22s ease; }
+        .action-toast-enter-from, .action-toast-leave-to { opacity: 0; transform: translate(-50%, 12px); }
 
         /* Kitchen Mode Anim */
         @keyframes pulse-border {
@@ -68,6 +70,17 @@
             </div>
             <div v-else-if="showOnlineToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] bg-emerald-600/90 backdrop-blur-sm text-white px-5 py-2.5 rounded-full shadow-lg shadow-emerald-900/20 text-xs font-bold flex items-center gap-2 border border-emerald-500 print:hidden">
                 <i class="fa-solid fa-wifi"></i> Kembali Online
+            </div>
+        </transition>
+
+        <!-- GLOBAL FLOATING ACTION TOAST -->
+        <transition name="action-toast">
+            <div v-if="actionToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1300] max-w-[calc(100%-2rem)] px-4 py-3 rounded-xl shadow-2xl text-white text-sm font-semibold flex items-center gap-2 print:hidden"
+                 :class="actionToastType === 'error' ? 'bg-red-600' : actionToastType === 'warning' ? 'bg-amber-600' : 'bg-emerald-600'"
+                 role="status" aria-live="polite">
+                <i :class="actionToastType === 'error' ? 'fa-solid fa-circle-xmark' : actionToastType === 'warning' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-check'"></i>
+                <span>{{ actionToast }}</span>
+                <button @click="clearActionToast" type="button" class="ml-1 opacity-80 hover:opacity-100" aria-label="Tutup notifikasi"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </transition>
 
@@ -183,7 +196,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.2 (HPP Safety & Filter Reset)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.4 (Floating Action Toast)</p>
                 </div>
             </div>
 
@@ -443,8 +456,11 @@
                             <select v-model="recipeSort" aria-label="Urutkan resep" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white font-medium">
                                 <option value="name_asc">A-Z Nama</option>
                                 <option value="name_desc">Z-A Nama</option>
-                                <option value="margin_desc">Margin Tertinggi</option>
+                                <option value="hpp_asc">HPP Terendah</option>
                                 <option value="hpp_desc">HPP Tertinggi</option>
+                                <option value="price_asc">Harga Jual Terendah</option>
+                                <option value="price_desc">Harga Jual Tertinggi</option>
+                                <option value="margin_desc">Margin Tertinggi</option>
                                 <option value="date_desc">Terbaru Diubah</option>
                             </select>
                             <button @click="resetRecipeFiltersAndSort()" type="button" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap" title="Reset pencarian, kategori, dan urutan resep"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Filter &amp; Sort</button>
@@ -453,13 +469,25 @@
                             </button>
                         </div>
 
+                        <div v-if="filteredAndSortedRecipes.length > 0" class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span>Menampilkan {{ recipePageStart }}–{{ recipePageEnd }} dari {{ filteredAndSortedRecipes.length }} resep</span>
+                            <label class="flex items-center gap-2">
+                                <span>Per halaman</span>
+                                <select v-model.number="recipePageSize" class="py-1.5 px-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 dark:text-white">
+                                    <option :value="10">10</option>
+                                    <option :value="20">20</option>
+                                    <option :value="50">50</option>
+                                </select>
+                            </label>
+                        </div>
+
                         <div v-if="filteredAndSortedRecipes.length === 0" class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center text-slate-400 border border-dashed border-slate-300 dark:border-slate-700">
                             <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
                             <p class="text-sm font-medium">Tidak ada {{ recipeListTab === 'menu' ? 'Menu Jualan' : 'Sub-Resep / Prep' }} ditemukan.</p>
                         </div>
 
                         <transition-group name="list" tag="div" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div v-for="recipe in filteredAndSortedRecipes" :key="recipe.id" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col hover:border-amber-200 dark:hover:border-amber-700 transition-colors" :class="recipe.type === 'prep' ? 'border-l-4 border-l-indigo-500' : (formatMargin(recipe) < targetMargin && recipe.type === 'menu' && !isKitchenMode ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-amber-500')">
+                            <div v-for="recipe in paginatedRecipes" :key="recipe.id" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col hover:border-amber-200 dark:hover:border-amber-700 transition-colors" :class="recipe.type === 'prep' ? 'border-l-4 border-l-indigo-500' : (formatMargin(recipe) < targetMargin && recipe.type === 'menu' && !isKitchenMode ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-amber-500')">
                                 <div class="p-4 space-y-3 flex-1">
                                     <div class="flex justify-between items-start">
                                         <div>
@@ -602,6 +630,18 @@
                                 </div>
                             </div>
                         </transition-group>
+
+                        <div v-if="recipeTotalPages > 1" class="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                            <button @click="recipePage = Math.max(1, recipePage - 1)" :disabled="recipePage <= 1" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700">
+                                <i class="fa-solid fa-chevron-left mr-1"></i> Sebelumnya
+                            </button>
+                            <div class="flex items-center gap-1">
+                                <button v-for="page in recipePageNumbers" :key="page" @click="recipePage = page" :class="recipePage === page ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'" class="min-w-8 px-2.5 py-2 rounded-lg border text-xs font-bold">{{ page }}</button>
+                            </div>
+                            <button @click="recipePage = Math.min(recipeTotalPages, recipePage + 1)" :disabled="recipePage >= recipeTotalPages" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700">
+                                Berikutnya <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
                     </section>
 
                     <!-- TAB 2: BAHAN BAKU -->
@@ -1175,7 +1215,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.2 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.4 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1341,6 +1381,9 @@
                     isOnline: navigator.onLine,
                     showOnlineToast: false,
                     actionNotice: '',
+                    actionToast: '',
+                    actionToastType: 'success',
+                    actionToastTimer: null,
 
                     authMode: 'login', 
                     authForm: { email: '', password: '' },
@@ -1377,7 +1420,7 @@
                     newIngredientCategory: '',
                     newPlatform: { name: '', fee: 20 },
 
-                    recipeSearch: '', recipeCategoryFilter: 'All', recipeSort: 'name_asc', 
+                    recipeSearch: '', recipeCategoryFilter: 'All', recipeSort: 'name_asc', recipePage: 1, recipePageSize: (window.innerWidth <= 640 ? 10 : 20), 
                     ingredientSearch: '', ingredientCategoryFilter: 'All', ingredientSupplierFilter: 'All', ingredientSort: 'name_asc', 
                     priceInputMode: 'margin',
                     
@@ -1563,14 +1606,44 @@
                     return result.sort((a, b) => {
                         if (this.recipeSort === 'name_asc') return a.name.localeCompare(b.name);
                         if (this.recipeSort === 'name_desc') return b.name.localeCompare(a.name);
-                        if (this.recipeSort === 'margin_desc') return this.formatMargin(b) - this.formatMargin(a);
+                        if (this.recipeSort === 'hpp_asc') return this.calculateRecipeHPP(a) - this.calculateRecipeHPP(b);
                         if (this.recipeSort === 'hpp_desc') return this.calculateRecipeHPP(b) - this.calculateRecipeHPP(a);
+                        if (this.recipeSort === 'price_asc') return this.calculateBasePrice(a) - this.calculateBasePrice(b);
+                        if (this.recipeSort === 'price_desc') return this.calculateBasePrice(b) - this.calculateBasePrice(a);
+                        if (this.recipeSort === 'margin_desc') return this.formatMargin(b) - this.formatMargin(a);
                         if (this.recipeSort === 'date_desc') return (b.updatedAt || 0) - (a.updatedAt || 0);
                         return 0;
                     });
+                },
+                recipeTotalPages() {
+                    return Math.max(1, Math.ceil(this.filteredAndSortedRecipes.length / this.recipePageSize));
+                },
+                paginatedRecipes() {
+                    const start = (this.recipePage - 1) * this.recipePageSize;
+                    return this.filteredAndSortedRecipes.slice(start, start + this.recipePageSize);
+                },
+                recipePageStart() {
+                    return this.filteredAndSortedRecipes.length ? ((this.recipePage - 1) * this.recipePageSize) + 1 : 0;
+                },
+                recipePageEnd() {
+                    return Math.min(this.recipePage * this.recipePageSize, this.filteredAndSortedRecipes.length);
+                },
+                recipePageNumbers() {
+                    const total = this.recipeTotalPages;
+                    const start = Math.max(1, Math.min(this.recipePage - 2, total - 4));
+                    const end = Math.min(total, start + 4);
+                    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
                 }
             },
             watch: {
+                recipeSearch() { this.recipePage = 1; },
+                recipeCategoryFilter() { this.recipePage = 1; },
+                recipeSort() { this.recipePage = 1; },
+                recipeListTab() { this.recipePage = 1; },
+                recipePageSize() { this.recipePage = 1; },
+                filteredAndSortedRecipes() {
+                    if (this.recipePage > this.recipeTotalPages) this.recipePage = this.recipeTotalPages;
+                },
                 isDarkMode(val) {
                     if(val) document.documentElement.classList.add('dark');
                     else document.documentElement.classList.remove('dark');
@@ -1603,6 +1676,20 @@
                 }
             },
             methods: {
+                showActionToast(message, type = 'success') {
+                    if (this.actionToastTimer) clearTimeout(this.actionToastTimer);
+                    this.actionToast = message;
+                    this.actionToastType = type;
+                    this.actionToastTimer = setTimeout(() => {
+                        this.actionToast = '';
+                        this.actionToastTimer = null;
+                    }, 2800);
+                },
+                clearActionToast() {
+                    if (this.actionToastTimer) clearTimeout(this.actionToastTimer);
+                    this.actionToastTimer = null;
+                    this.actionToast = '';
+                },
                 isPackagingOrSupplies(ingredientId) {
                     if (!ingredientId || typeof ingredientId !== 'string' || ingredientId.startsWith('recipe_')) return false;
                     const ing = this.getIngredient(ingredientId);
@@ -1891,11 +1978,13 @@
                     
                     const data = { ...this.supplierForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/suppliers`);
-                    try { if (this.editingSupplierId) await updateDoc(doc(ref, this.editingSupplierId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Supplier gagal disimpan. Periksa koneksi.'); return; }
+                    const wasEditing = !!this.editingSupplierId;
+                    try { if (wasEditing) await updateDoc(doc(ref, this.editingSupplierId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Supplier gagal disimpan. Periksa koneksi.'); return; }
                     this.showSupplierModal = false;
+                    this.showActionToast(wasEditing ? 'Supplier berhasil diperbarui.' : 'Supplier berhasil ditambahkan.');
                 },
                 async deleteSupplier(id) { 
-                    if (confirm("Hapus?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); } catch (error) { console.error(error); alert("Supplier gagal dihapus."); } } 
+                    if (confirm("Hapus?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); this.showActionToast('Supplier berhasil dihapus.'); } catch (error) { console.error(error); alert("Supplier gagal dihapus."); } } 
                 },
 
                 resetIngredientFiltersAndSort() {
@@ -1942,17 +2031,19 @@
                     
                     const data = { ...this.ingredientForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/ingredients`);
-                    try { if (this.editingIngredientId) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Bahan baku gagal disimpan. Periksa koneksi.'); return; }
+                    const wasEditing = !!this.editingIngredientId;
+                    try { if (wasEditing) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Bahan baku gagal disimpan. Periksa koneksi.'); return; }
                     this.showIngredientModal = false;
+                    this.showActionToast(wasEditing ? 'Bahan baku berhasil diperbarui.' : 'Bahan baku berhasil ditambahkan.');
                 },
                 async deleteIngredient(id) {
                     const ingredient = this.getIngredient(id);
                     if (this.isIngredientUsed(id)) {
-                        this.actionNotice = `Bahan "${ingredient?.name || 'ini'}" tidak bisa dihapus karena masih digunakan dalam satu atau lebih resep. Ganti atau hapus bahan tersebut dari resep terlebih dahulu.`;
+                        this.showActionToast(`Bahan "${ingredient?.name || 'ini'}" masih digunakan dalam resep dan tidak bisa dihapus.`, 'warning');
                         return;
                     }
                     if (confirm(`Hapus bahan "${ingredient?.name || 'ini'}"?`)) {
-                        try { await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); }
+                        try { await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); this.showActionToast('Bahan baku berhasil dihapus.'); }
                         catch (error) { console.error(error); alert("Bahan baku gagal dihapus."); }
                     }
                 },
@@ -2045,19 +2136,20 @@
                     }
                     const data = { ...this.recipeForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/recipes`);
-                    try { if (this.editingRecipeId) await updateDoc(doc(ref, this.editingRecipeId), data); else await addDoc(ref, data); } catch (error) { console.error('Gagal menyimpan resep:', error); alert('Resep gagal disimpan. Periksa koneksi dan coba lagi.'); return; }
-                    
-                    this.recipeListTab = this.recipeForm.type; 
+                    const wasEditing = !!this.editingRecipeId;
+                    try { if (wasEditing) await updateDoc(doc(ref, this.editingRecipeId), data); else await addDoc(ref, data); } catch (error) { console.error('Gagal menyimpan resep:', error); alert('Resep gagal disimpan. Periksa koneksi dan coba lagi.'); return; }
+                    this.recipeListTab = this.recipeForm.type;
                     this.showRecipeModal = false;
+                    this.showActionToast(wasEditing ? 'Resep berhasil diperbarui.' : 'Resep berhasil ditambahkan.');
                 },
                 async deleteRecipe(id) {
                     const recipe = this.normalizedRecipes.find(r => r.id === id);
                     if (this.isRecipeUsed(id)) {
-                        this.actionNotice = `Sub-resep "${recipe?.name || 'ini'}" tidak bisa dihapus karena masih digunakan oleh resep lain. Ganti atau hapus pemakaiannya terlebih dahulu.`;
+                        this.showActionToast(`Sub-resep "${recipe?.name || 'ini'}" masih digunakan resep lain dan tidak bisa dihapus.`, 'warning');
                         return;
                     }
                     if (confirm(`Hapus resep "${recipe?.name || 'ini'}"?`)) {
-                        try { await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); }
+                        try { await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); this.showActionToast('Resep berhasil dihapus.'); }
                         catch (error) { console.error(error); alert("Resep gagal dihapus."); }
                     }
                 },

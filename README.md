@@ -1,4 +1,4 @@
-# HPP Beancults — v8.7.2
+# HPP Beancults — v8.7.4
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
@@ -36,3 +36,18 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Menampilkan peringatan pada kartu resep jika ditemukan bahan/sub-resep hilang, satuan tidak cocok, atau takaran tidak valid.
 - Menambahkan pilihan pengurutan resep dan tombol Reset Sort By pada daftar resep dan bahan baku.
 - Reset Filter & Sort mengembalikan urutan ke A-Z sekaligus menghapus pencarian dan filter kategori; pada bahan baku, filter supplier juga direset.
+
+
+## Perubahan v8.7.3
+- Pagination pada Manajemen Resep: default 10 item pada layar HP dan 20 item pada layar lebih lebar.
+- Pilihan jumlah item per halaman: 10, 20, atau 50.
+- Informasi rentang item dan total resep, serta navigasi halaman.
+- Sortir resep berdasarkan nama, HPP terendah/tertinggi, harga jual terendah/tertinggi, margin, dan tanggal perubahan.
+- Pencarian, kategori, tab Menu/Prep, dan sortir diterapkan sebelum pagination.
+
+
+## Perubahan v8.7.4
+- Notifikasi mengambang untuk tambah, edit, dan hapus supplier, bahan baku, serta resep.
+- Notifikasi otomatis hilang setelah sekitar 2,8 detik dan dapat ditutup manual.
+- Peringatan ketika bahan/sub-resep masih digunakan juga tampil sebagai notifikasi mengambang.
+- Notifikasi sukses muncul setelah operasi Firestore berhasil diselesaikan.
