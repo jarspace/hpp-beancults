@@ -174,7 +174,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.5.1 (BEP & Impact Analysis)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.6.0 (Calculation & Reliability)</p>
                 </div>
             </div>
 
@@ -293,7 +293,7 @@
                             <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
                                 <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-2">
                                     <h3 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                                        <i class="fa-solid fa-bullseye text-blue-500"></i> Target Penjualan & Simulasi BEP
+                                        <i class="fa-solid fa-bullseye text-blue-500"></i> Estimasi BEP (titik impas)
                                     </h3>
                                     <button @click="showSettingsModal = true" class="text-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition-colors border border-slate-200 dark:border-slate-600">Edit Biaya Tetap</button>
                                 </div>
@@ -308,11 +308,11 @@
                                     
                                     <div class="sm:col-span-3 grid grid-cols-3 gap-2">
                                         <div class="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-lg border border-blue-100 dark:border-blue-800/50 flex flex-col justify-center items-center text-center">
-                                            <span class="text-[9px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-tight mb-0.5">Target Porsi / Bulan</span>
+                                            <span class="text-[9px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-tight mb-0.5">Estimasi Porsi / Bulan</span>
                                             <span class="font-bold text-blue-900 dark:text-blue-200 text-lg font-mono leading-none">{{ formatNumber(bepStats.targetPorsiBulan) }} <span class="text-[10px] font-sans text-blue-600">prs</span></span>
                                         </div>
                                         <div class="bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center text-center relative">
-                                            <span class="text-[9px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-tight mb-0.5">Target Porsi / Hari</span>
+                                            <span class="text-[9px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-tight mb-0.5">Estimasi Porsi / Hari</span>
                                             <span class="font-bold text-indigo-900 dark:text-indigo-200 text-lg font-mono leading-none">{{ formatNumber(bepStats.targetPorsiHari) }} <span class="text-[10px] font-sans text-indigo-600">prs</span></span>
                                         </div>
                                         <div class="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/50 flex flex-col justify-center items-center text-center">
@@ -322,7 +322,7 @@
                                     </div>
                                 </div>
                                 <p v-if="dashboardStats.totalMenu > 0" class="text-[9px] text-slate-500 dark:text-slate-400 text-center italic">
-                                    *Dihitung berdasarkan rata-rata profit bersih Rp {{ formatNumber(bepStats.avgProfit) }}/porsi dari {{ dashboardStats.totalMenu }} menu jualan aktif.
+                                    *Estimasi memakai rata-rata kontribusi Rp {{ formatNumber(bepStats.avgProfit) }}/porsi dari {{ dashboardStats.totalMenu }} menu, dengan asumsi semua menu terjual dalam proporsi sama. Belum memakai data volume penjualan aktual dan belum memasukkan komisi platform.
                                 </p>
                             </div>
 
@@ -1055,7 +1055,7 @@
                                         <input v-model.number="fixedCost" @change="saveUserSettings" type="number" min="0" class="w-full bg-transparent text-sm font-mono font-bold text-slate-800 dark:text-white outline-none">
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Digunakan untuk hitung rata-rata BEP per bulan & notifikasi peringatan jika ada margin resep yang terlalu tipis (di bawah standar).</p>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">BEP ini estimasi dengan rata-rata kontribusi per menu dan asumsi komposisi penjualan merata. Untuk hasil akurat, gunakan bobot berdasarkan jumlah penjualan tiap menu. PIN Mode Dapur hanya pembatas tampilan, bukan pengamanan data.</p>
                             </div>
 
                             <!-- KITCHEN MODE PIN SETTING -->
@@ -1396,7 +1396,7 @@
                     
                     if (avgProfit <= 0) return { avgProfit: 0, targetPorsiBulan: 0, targetPorsiHari: 0, targetOmset: 0 };
                     
-                    const fc = Number(this.fixedCost) || 0;
+                    const fc = Math.max(0, Number(this.fixedCost) || 0);
                     const targetPorsiBulan = Math.ceil(fc / avgProfit);
                     const targetPorsiHari = Math.ceil(targetPorsiBulan / 30);
                     const targetOmset = targetPorsiBulan * avgPrice;
@@ -1407,7 +1407,7 @@
                 modalCalculatedNetUnitPrice() {
                     const price = Number(this.ingredientForm.buyPrice) || 0;
                     const qty = Number(this.ingredientForm.buyQty) || 1;
-                    const yieldPct = Number(this.ingredientForm.yieldPercent) || 100;
+                    const yieldPct = Number(this.ingredientForm.yieldPercent ?? 100);
                     return (qty * (yieldPct / 100)) > 0 ? price / (qty * (yieldPct / 100)) : 0;
                 },
                 modalCalculatedRecipeHPP() {
@@ -1421,7 +1421,7 @@
                         return Number(this.recipeForm.customPrice) || 0;
                     }
                     const margin = Number(this.recipeForm.margin) || 0;
-                    return margin >= 100 ? this.modalCalculatedRecipeHPP : this.modalCalculatedRecipeHPP / (1 - (margin / 100));
+                    return this.modalCalculatedRecipeHPP / (1 - (Math.min(99.99, Math.max(0, margin)) / 100));
                 },
                 calculatedMarginFromCustomPrice() {
                     const hpp = this.modalCalculatedRecipeHPP;
@@ -1600,9 +1600,9 @@
                     if (!this.user || !db) return;
                     this.unsubscribeData();
                     const uid = this.user.uid;
-                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/suppliers`), (snap) => this.suppliers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/ingredients`), (snap) => this.ingredients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/recipes`), (snap) => this.recipes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/suppliers`), (snap) => this.suppliers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })), (error) => { console.error('Supplier listener:', error); alert('Data supplier gagal disinkronkan. Periksa koneksi atau izin Firebase.'); }));
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/ingredients`), (snap) => this.ingredients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })), (error) => { console.error('Ingredient listener:', error); alert('Data bahan baku gagal disinkronkan. Periksa koneksi atau izin Firebase.'); }));
+                    this.unsubscribes.push(onSnapshot(collection(db, `users/${uid}/recipes`), (snap) => this.recipes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })), (error) => { console.error('Recipe listener:', error); alert('Data resep gagal disinkronkan. Periksa koneksi atau izin Firebase.'); }));
                 },
                 unsubscribeData() {
                     this.unsubscribes.forEach(unsub => unsub());
@@ -1611,6 +1611,7 @@
 
                 async loadUserSettings() {
                     if(!db || !this.user) return;
+                    try {
                     const docSnap = await getDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'));
                     if (docSnap.exists()) {
                         const d = docSnap.data();
@@ -1622,18 +1623,21 @@
                         if (d.fixedCost !== undefined) this.fixedCost = d.fixedCost;
                         if (d.targetMargin !== undefined) this.targetMargin = d.targetMargin;
                     }
+                    } catch (error) {
+                        console.error('Gagal memuat pengaturan:', error);
+                        alert('Pengaturan belum dapat dimuat. Periksa koneksi internet lalu muat ulang aplikasi.');
+                    }
                 },
                 async saveUserSettings() {
                     if(!db || !this.user) return;
-                    setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), { 
-                        categories: this.categories,
-                        ingredientCategories: this.ingredientCategories,
-                        platforms: this.platforms,
-                        storeName: this.storeName,
-                        kitchenPin: this.kitchenPin,
-                        fixedCost: this.fixedCost,
-                        targetMargin: this.targetMargin
-                    }, { merge: true });
+                    try {
+                        await setDoc(doc(db, `users/${this.user.uid}/settings`, 'preferences'), {
+                            categories: this.categories, ingredientCategories: this.ingredientCategories,
+                            platforms: this.platforms, storeName: this.storeName, kitchenPin: this.kitchenPin,
+                            fixedCost: Math.max(0, Number(this.fixedCost) || 0),
+                            targetMargin: Math.min(99, Math.max(0, Number(this.targetMargin) || 0))
+                        }, { merge: true });
+                    } catch (error) { console.error('Gagal menyimpan pengaturan:', error); alert('Pengaturan gagal disimpan. Periksa koneksi internet.'); }
                 },
                 
                 addCategory() { if(this.newCategoryName && !this.categories.includes(this.newCategoryName)) { this.categories.push(this.newCategoryName); this.saveUserSettings(); this.newCategoryName = ''; } },
@@ -1667,51 +1671,89 @@
                 
                 calculateNetUnitPrice(ing) {
                     if (!ing) return 0;
-                    const cleanQty = (Number(ing.buyQty) || 1) * ((Number(ing.yieldPercent) || 100) / 100);
+                    const buyQty = Number(ing.buyQty);
+                    const yieldPct = Number(ing.yieldPercent ?? 100);
+                    const cleanQty = buyQty * (yieldPct / 100);
                     return cleanQty > 0 ? (Number(ing.buyPrice) || 0) / cleanQty : 0;
                 },
                 
+                normalizeUnit(unit) {
+                    const value = String(unit || '').trim().toLowerCase();
+                    const aliases = { g: 'gram', gr: 'gram', grams: 'gram', kilogram: 'kg', kilograms: 'kg', l: 'liter', litre: 'liter', liters: 'liter', milliliter: 'ml', millilitre: 'ml', pc: 'pcs', piece: 'pcs', pieces: 'pcs', portion: 'porsi', portions: 'porsi' };
+                    return aliases[value] || value;
+                },
+                unitMultiplier(sourceUnit, targetUnit) {
+                    const source = this.normalizeUnit(sourceUnit);
+                    const target = this.normalizeUnit(targetUnit);
+                    if (!source || !target) return null;
+                    if (source === target) return 1;
+                    const conversions = { 'kg:gram': 1 / 1000, 'gram:kg': 1000, 'liter:ml': 1 / 1000, 'ml:liter': 1000 };
+                    return conversions[`${source}:${target}`] ?? null;
+                },
                 calculateItemCost(item, visited = []) {
-                    if (!item.ingredientId) return 0;
+                    if (!item || !item.ingredientId) return 0;
+                    const qty = Number(item.qty);
+                    if (!Number.isFinite(qty) || qty < 0) return 0;
                     if (item.ingredientId.startsWith('recipe_')) {
                         const subId = item.ingredientId.replace('recipe_', '');
+                        if (visited.includes(subId)) return 0;
                         const subRecipe = this.normalizedRecipes.find(r => r.id === subId);
                         if (!subRecipe) return 0;
-                        const subHPP = this.calculateRecipeHPP(subRecipe, [...visited]);
-                        const yieldQty = Number(subRecipe.yieldQty) || 1;
-                        const costPerUnit = subHPP / yieldQty;
-                        let multiplier = 1;
-                        const itemUnit = item.unit || (subRecipe.yieldUnit || 'porsi');
-                        const subUnit = subRecipe.yieldUnit || 'porsi';
-                        if (subUnit === 'kg' && itemUnit === 'gram') multiplier = 1/1000;
-                        if (subUnit === 'gram' && itemUnit === 'kg') multiplier = 1000;
-                        if (subUnit === 'liter' && itemUnit === 'ml') multiplier = 1/1000;
-                        if (subUnit === 'ml' && itemUnit === 'liter') multiplier = 1000;
-                        return costPerUnit * multiplier * (Number(item.qty) || 0);
+                        const yieldQty = Number(subRecipe.yieldQty);
+                        if (!Number.isFinite(yieldQty) || yieldQty <= 0) return 0;
+                        const multiplier = this.unitMultiplier(subRecipe.yieldUnit || 'porsi', item.unit || subRecipe.yieldUnit || 'porsi');
+                        if (multiplier === null) return 0;
+                        return (this.calculateRecipeHPP(subRecipe, [...visited]) / yieldQty) * multiplier * qty;
                     }
                     const ing = this.getIngredient(item.ingredientId);
                     if (!ing) return 0;
-                    const netPrice = this.calculateNetUnitPrice(ing);
-                    let multiplier = 1;
-                    const itemUnit = item.unit || ing.unit;
-                    if (ing.unit === 'kg' && itemUnit === 'gram') multiplier = 1/1000;
-                    if (ing.unit === 'gram' && itemUnit === 'kg') multiplier = 1000;
-                    if (ing.unit === 'liter' && itemUnit === 'ml') multiplier = 1/1000;
-                    if (ing.unit === 'ml' && itemUnit === 'liter') multiplier = 1000;
-                    return netPrice * multiplier * (Number(item.qty) || 0);
+                    const multiplier = this.unitMultiplier(ing.unit, item.unit || ing.unit);
+                    if (multiplier === null) return 0;
+                    return this.calculateNetUnitPrice(ing) * multiplier * qty;
                 },
-
                 calculateRecipeHPP(recipe, visited = []) {
-                    if (!recipe) return 0;
-                    if (visited.includes(recipe.id)) return 0; 
+                    if (!recipe || !recipe.id || visited.includes(recipe.id)) return 0;
                     const newVisited = [...visited, recipe.id];
-                    const ingredientsCost = recipe.items ? recipe.items.reduce((sum, item) => sum + this.calculateItemCost(item, newVisited), 0) : 0;
-                    return ingredientsCost + (Number(recipe.overheadCost) || 0);
+                    const itemsCost = Array.isArray(recipe.items) ? recipe.items.reduce((sum, item) => sum + this.calculateItemCost(item, newVisited), 0) : 0;
+                    return itemsCost + Math.max(0, Number(recipe.overheadCost) || 0);
+                },
+                recipeHasDependency(recipeId, targetId, visited = []) {
+                    if (!recipeId || !targetId || visited.includes(recipeId)) return false;
+                    if (recipeId === targetId) return true;
+                    const recipe = this.normalizedRecipes.find(r => r.id === recipeId);
+                    if (!recipe || !Array.isArray(recipe.items)) return false;
+                    const nextVisited = [...visited, recipeId];
+                    return recipe.items.some(item => item.ingredientId && item.ingredientId.startsWith('recipe_') &&
+                        this.recipeHasDependency(item.ingredientId.replace('recipe_', ''), targetId, nextVisited));
+                },
+                validateRecipeForm() {
+                    const errors = [];
+                    if (!this.recipeForm.name || !this.recipeForm.name.trim()) errors.push('Nama resep wajib diisi.');
+                    if (!Array.isArray(this.recipeForm.items) || this.recipeForm.items.length === 0) errors.push('Tambahkan minimal satu bahan atau sub-resep.') ;
+                    (this.recipeForm.items || []).forEach((item, index) => {
+                        if (!item.ingredientId) { errors.push(`Bahan pada baris ${index + 1} belum dipilih.`); return; }
+                        const qty = Number(item.qty);
+                        if (!Number.isFinite(qty) || qty <= 0) errors.push(`Jumlah bahan pada baris ${index + 1} harus lebih dari 0.`);
+                        if (item.ingredientId.startsWith('recipe_')) {
+                            const subId = item.ingredientId.replace('recipe_', '');
+                            const sub = this.normalizedRecipes.find(r => r.id === subId);
+                            if (subId === this.editingRecipeId || this.recipeHasDependency(subId, this.editingRecipeId)) errors.push(`Sub-resep pada baris ${index + 1} akan membentuk siklus resep. Pilih sub-resep lain.`);
+                            else if (!sub) errors.push(`Sub-resep pada baris ${index + 1} tidak ditemukan.`);
+                            else if (this.unitMultiplier(sub.yieldUnit || 'porsi', item.unit || sub.yieldUnit || 'porsi') === null) errors.push(`Satuan sub-resep pada baris ${index + 1} tidak cocok.`);
+                        } else {
+                            const ing = this.getIngredient(item.ingredientId);
+                            if (!ing) errors.push(`Bahan pada baris ${index + 1} tidak ditemukan.`);
+                            else if (this.unitMultiplier(ing.unit, item.unit || ing.unit) === null) errors.push(`Satuan bahan "${ing.name}" pada baris ${index + 1} tidak cocok dengan satuan pembelian.`);
+                        }
+                    });
+                    if (Number(this.recipeForm.overheadCost) < 0) errors.push('Biaya tambahan tidak boleh negatif.');
+                    if (this.recipeForm.type === 'prep' && (!Number.isFinite(Number(this.recipeForm.yieldQty)) || Number(this.recipeForm.yieldQty) <= 0)) errors.push('Hasil produksi sub-resep harus lebih dari 0.');
+                    return errors;
                 },
                 calculateBasePrice(recipe) {
                     if (recipe.customPrice && recipe.customPrice > 0) return Number(recipe.customPrice);
-                    const mrg = Number(recipe.margin) || 0;
-                    return mrg >= 100 ? this.calculateRecipeHPP(recipe) : this.calculateRecipeHPP(recipe) / (1 - (mrg / 100));
+                    const mrg = Math.min(99.99, Math.max(0, Number(recipe.margin) || 0));
+                    return this.calculateRecipeHPP(recipe) / (1 - (mrg / 100));
                 },
                 formatMargin(recipe) {
                     const hpp = this.calculateRecipeHPP(recipe);
@@ -1719,8 +1761,10 @@
                     if (price <= 0 || price <= hpp) return Number(recipe.margin) || 0;
                     return Math.round(((price - hpp) / price) * 100);
                 },
-                calculatePlatformSpecificPrice(recipe, feePercent) { 
-                    return this.calculateBasePrice(recipe) / (1 - (Number(feePercent) / 100)); 
+                calculatePlatformSpecificPrice(recipe, feePercent) {
+                    const fee = Number(feePercent);
+                    if (!Number.isFinite(fee) || fee < 0 || fee >= 100) return 0;
+                    return this.calculateBasePrice(recipe) / (1 - (fee / 100));
                 },
 
                 openSupplierModal(sup = null) {
@@ -1735,12 +1779,11 @@
                     
                     const data = { ...this.supplierForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/suppliers`);
-                    if (this.editingSupplierId) updateDoc(doc(ref, this.editingSupplierId), data); 
-                    else addDoc(ref, data);
+                    try { if (this.editingSupplierId) await updateDoc(doc(ref, this.editingSupplierId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Supplier gagal disimpan. Periksa koneksi.'); return; }
                     this.showSupplierModal = false;
                 },
                 async deleteSupplier(id) { 
-                    if (confirm("Hapus?")) deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); 
+                    if (confirm("Hapus?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/suppliers`, id)); } catch (error) { console.error(error); alert("Supplier gagal dihapus."); } } 
                 },
 
                 openIngredientModal(ing = null) {
@@ -1749,7 +1792,15 @@
                     this.showIngredientModal = true;
                 },
                 async saveIngredient() {
-                    const nameToSave = this.ingredientForm.name.trim().toLowerCase();
+                    const rawName = String(this.ingredientForm.name || '').trim();
+                    const buyPrice = Number(this.ingredientForm.buyPrice);
+                    const buyQty = Number(this.ingredientForm.buyQty);
+                    const yieldPct = Number(this.ingredientForm.yieldPercent ?? 100);
+                    if (!rawName) { alert('Nama bahan wajib diisi.'); return; }
+                    if (!Number.isFinite(buyPrice) || buyPrice < 0) { alert('Harga beli harus 0 atau lebih.'); return; }
+                    if (!Number.isFinite(buyQty) || buyQty <= 0) { alert('Kuantitas pembelian harus lebih dari 0.'); return; }
+                    if (!Number.isFinite(yieldPct) || yieldPct <= 0 || yieldPct > 100) { alert('Yield harus antara 1 sampai 100%.'); return; }
+                    const nameToSave = rawName.toLowerCase();
                     const brandToSave = this.ingredientForm.brand ? this.ingredientForm.brand.trim().toLowerCase() : '';
                     
                     const exists = this.ingredients.find(i => 
@@ -1765,12 +1816,11 @@
                     
                     const data = { ...this.ingredientForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/ingredients`);
-                    if (this.editingIngredientId) updateDoc(doc(ref, this.editingIngredientId), data); 
-                    else addDoc(ref, data);
+                    try { if (this.editingIngredientId) await updateDoc(doc(ref, this.editingIngredientId), data); else await addDoc(ref, data); } catch (error) { console.error(error); alert('Bahan baku gagal disimpan. Periksa koneksi.'); return; }
                     this.showIngredientModal = false;
                 },
                 async deleteIngredient(id) { 
-                    if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); 
+                    if (confirm("Hapus bahan ini? Catatan: Jika sedang digunakan pada resep, item akan error/kosong.")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/ingredients`, id)); } catch (error) { console.error(error); alert("Bahan baku gagal dihapus."); } } 
                 },
 
                 openRecipeModal(recipe = null, forceType = null) {
@@ -1827,7 +1877,7 @@
                 handleMarginInput() {
                     const hpp = this.modalCalculatedRecipeHPP;
                     const mrg = Number(this.recipeForm.margin) || 0;
-                    this.recipeForm.customPrice = mrg >= 100 ? hpp : Math.round(hpp / (1 - (mrg / 100)));
+                    this.recipeForm.customPrice = Math.round(hpp / (1 - (Math.min(99.99, Math.max(0, mrg)) / 100))); 
                 },
                 handleCustomPriceInput() {
                     const hpp = this.modalCalculatedRecipeHPP;
@@ -1837,6 +1887,8 @@
                     }
                 },
                 async saveRecipe() {
+                    const validationErrors = this.validateRecipeForm();
+                    if (validationErrors.length) { alert('Periksa resep terlebih dahulu:\n- ' + validationErrors.join('\n- ')); return; }
                     const nameToSave = this.recipeForm.name.trim().toLowerCase();
                     const exists = this.recipes.find(r => r.name.toLowerCase() === nameToSave && r.id !== this.editingRecipeId);
                     if (exists) { alert("Resep dengan nama '" + this.recipeForm.name + "' sudah ada!"); return; }
@@ -1852,14 +1904,13 @@
                     }
                     const data = { ...this.recipeForm, updatedAt: Date.now() };
                     const ref = collection(db, `users/${this.user.uid}/recipes`);
-                    if (this.editingRecipeId) updateDoc(doc(ref, this.editingRecipeId), data); 
-                    else addDoc(ref, data);
+                    try { if (this.editingRecipeId) await updateDoc(doc(ref, this.editingRecipeId), data); else await addDoc(ref, data); } catch (error) { console.error('Gagal menyimpan resep:', error); alert('Resep gagal disimpan. Periksa koneksi dan coba lagi.'); return; }
                     
                     this.recipeListTab = this.recipeForm.type; 
                     this.showRecipeModal = false;
                 },
                 async deleteRecipe(id) { 
-                    if (confirm("Hapus resep ini?")) deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); 
+                    if (confirm("Hapus resep ini?")) { try { await deleteDoc(doc(db, `users/${this.user.uid}/recipes`, id)); } catch (error) { console.error(error); alert("Resep gagal dihapus."); } } 
                 },
 
                 printSOP(recipe) {
