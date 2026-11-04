@@ -1239,7 +1239,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.8.0 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.8.1 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1862,21 +1862,42 @@
                     try {
                         const backup = JSON.parse(await file.text());
                         const groups = backup?.collections;
-                        const validArray = value => Array.isArray(value) && value.every(item => item && typeof item === 'object' && typeof item.id === 'string' && item.id.length > 0 && item.id.length <= 1500);
-                        if (backup?.app !== 'HPP Beancults' || backup?.backupVersion !== 1 || backup?.uid !== this.user?.uid || !groups || !validArray(groups.ingredients) || !validArray(groups.recipes) || !validArray(groups.suppliers) || !backup.settings || typeof backup.settings !== 'object' || Array.isArray(backup.settings)) {
+                        // Restore hanya boleh memproses koleksi yang memang digunakan aplikasi.
+                        const allowedCollections = ['ingredients', 'recipes', 'suppliers'];
+                        const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+                        const validArray = value => {
+                            if (!Array.isArray(value)) return false;
+                            const seenIds = new Set();
+                            return value.every(item => {
+                                if (!isPlainObject(item) || typeof item.id !== 'string') return false;
+                                const id = item.id;
+                                if (!id.trim() || id.length > 1500 || id.includes('/') || id === '.' || id === '..' || seenIds.has(id)) return false;
+                                seenIds.add(id);
+                                return true;
+                            });
+                        };
+                        const restoreUid = this.user?.uid;
+                        if (!restoreUid || backup?.app !== 'HPP Beancults' || backup?.backupVersion !== 1 || backup?.uid !== restoreUid || !isPlainObject(groups) || !isPlainObject(backup.settings)) {
                             throw new Error('Format backup tidak valid atau backup berasal dari akun berbeda.');
                         }
-                        const total = groups.ingredients.length + groups.recipes.length + groups.suppliers.length;
+                        const suppliedCollections = Object.keys(groups);
+                        if (suppliedCollections.some(name => !allowedCollections.includes(name)) || allowedCollections.some(name => !validArray(groups[name]))) {
+                            throw new Error('Backup berisi koleksi yang tidak diizinkan atau struktur data tidak valid.');
+                        }
+                        const total = allowedCollections.reduce((sum, name) => sum + groups[name].length, 0);
                         if (total > 5000) throw new Error('Backup berisi terlalu banyak data (maksimal 5.000 dokumen).');
                         const summary = `Backup berisi ${groups.ingredients.length} bahan, ${groups.recipes.length} resep, dan ${groups.suppliers.length} supplier. Dokumen dengan ID sama akan diperbarui; data lain tidak dihapus. Lanjutkan?`;
                         if (!confirm(summary)) return;
-                        const base = `users/${this.user.uid}`;
-                        for (const [name, docs] of Object.entries(groups)) {
-                            for (const item of docs) {
+                        if (this.user?.uid !== restoreUid) throw new Error('Akun berubah. Silakan login kembali sebelum memulihkan backup.');
+                        const base = `users/${restoreUid}`;
+                        for (const name of allowedCollections) {
+                            for (const item of groups[name]) {
+                                if (this.user?.uid !== restoreUid) throw new Error('Akun berubah saat pemulihan. Proses dihentikan.');
                                 const { id, ...data } = item;
                                 await setDoc(doc(db, `${base}/${name}`, id), data, { merge: true });
                             }
                         }
+                        if (this.user?.uid !== restoreUid) throw new Error('Akun berubah sebelum pengaturan dipulihkan.');
                         await setDoc(doc(db, `${base}/settings`, 'preferences'), backup.settings, { merge: true });
                         this.showActionToast('Pemulihan selesai. Data yang ada telah digabungkan.');
                     } catch (error) {

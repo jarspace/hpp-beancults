@@ -92,3 +92,12 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Pemulihan memvalidasi versi backup dan UID akun yang sama.
 - Pemulihan menggabungkan data berdasarkan ID dokumen; tidak menghapus dokumen lain.
 - Proses restore dilakukan per dokumen; jika koneksi terputus di tengah proses, sebagian data mungkin sudah masuk. Jalankan ulang file backup yang sama setelah koneksi pulih.
+
+
+## v8.8.1 – Restore Security Fix
+- Restore hanya menerima koleksi `ingredients`, `recipes`, dan `suppliers`; koleksi tambahan/asing ditolak.
+- Validasi ID dokumen: wajib berupa string, tidak kosong, tidak mengandung `/`, panjang maksimal 1.500 karakter, dan tidak duplikat per koleksi.
+- Memastikan UID akun tetap sama selama proses restore.
+- Validasi seluruh struktur dilakukan sebelum konfirmasi dan penulisan.
+- Pengaturan tetap dipulihkan ke dokumen `settings/preferences`; merge tetap dipertahankan dan dokumen lain tidak dihapus.
+- Tidak mengubah rumus HPP atau Firestore Security Rules.
