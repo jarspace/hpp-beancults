@@ -206,7 +206,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.7.6 (Mobile Form UX)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.7.7 (Toast & Recipe Timestamps)</p>
                 </div>
             </div>
 
@@ -509,6 +509,10 @@
                                                 </span>
                                             </div>
                                             <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ recipe.name }}</h3>
+                                            <div class="mt-1 flex flex-col gap-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                                <span><i class="fa-regular fa-calendar-plus mr-1"></i>Dibuat: {{ recipe.createdAt ? formatDate(recipe.createdAt) : 'Belum tersedia (resep lama)' }}</span>
+                                                <span><i class="fa-regular fa-clock mr-1"></i>Terakhir diubah: {{ recipe.updatedAt ? formatDate(recipe.updatedAt) : 'Belum tersedia' }}</span>
+                                            </div>
                                             <div v-if="getRecipeIssues(recipe).length" class="mt-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-[11px] leading-relaxed">
                                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i><strong>Perlu diperiksa:</strong> {{ getRecipeIssues(recipe).join(' • ') }}. HPP belum dapat dianggap valid.
                                             </div>
@@ -1225,7 +1229,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.6 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.7.7 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -2002,13 +2006,13 @@
                     this.ingredientCategoryFilter = 'All';
                     this.ingredientSupplierFilter = 'All';
                     this.ingredientSort = 'name_asc';
-                    this.actionNotice = 'Filter dan urutan bahan baku sudah direset.';
+                    this.showActionToast('Filter dan urutan bahan baku sudah direset.');
                 },
                 resetRecipeFiltersAndSort() {
                     this.recipeSearch = '';
                     this.recipeCategoryFilter = 'All';
                     this.recipeSort = 'name_asc';
-                    this.actionNotice = 'Filter dan urutan resep sudah direset.';
+                    this.showActionToast('Filter dan urutan resep sudah direset.');
                 },
 
                 openIngredientModal(ing = null) {
@@ -2144,9 +2148,15 @@
                         this.recipeForm.margin = 0;
                         this.recipeForm.customPrice = 0;
                     }
-                    const data = { ...this.recipeForm, updatedAt: Date.now() };
+                    const now = Date.now();
                     const ref = collection(db, `users/${this.user.uid}/recipes`);
                     const wasEditing = !!this.editingRecipeId;
+                    const existingRecipe = wasEditing ? this.normalizedRecipes.find(r => r.id === this.editingRecipeId) : null;
+                    const data = {
+                        ...this.recipeForm,
+                        createdAt: wasEditing ? (existingRecipe?.createdAt || null) : now,
+                        updatedAt: now
+                    };
                     try { if (wasEditing) await updateDoc(doc(ref, this.editingRecipeId), data); else await addDoc(ref, data); } catch (error) { console.error('Gagal menyimpan resep:', error); alert('Resep gagal disimpan. Periksa koneksi dan coba lagi.'); return; }
                     this.recipeListTab = this.recipeForm.type;
                     this.showRecipeModal = false;

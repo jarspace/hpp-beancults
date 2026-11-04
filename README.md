@@ -1,4 +1,4 @@
-# HPP Beancults — v8.7.6
+# HPP Beancults — v8.7.7
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
@@ -57,10 +57,17 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Posisi notifikasi mengambang dinaikkan agar berada di atas navigasi bawah, termasuk memperhitungkan safe area perangkat.
 
 
-## Perubahan v8.7.6
+## Perubahan v8.7.7
 - Modal tambah/edit bahan baku menggunakan layar penuh pada HP, dengan header tetap terlihat dan area form yang dapat digulir.
 - Tombol Batal/Simpan pada form bahan tetap berada di bagian bawah area form dan memperhitungkan safe area perangkat.
 - Modal resep memakai satu area scroll utama; bagian identitas resep tidak lagi memiliki scroll bersarang.
 - Tinggi kontrol input/select pada form mobile ditingkatkan untuk memudahkan sentuhan dan mencegah zoom otomatis pada sebagian browser iOS.
 - Tidak mengubah rumus HPP, struktur data Firestore, atau alur penyimpanan.
 - Pemeriksaan yang dilakukan: integritas ZIP dan sintaks JavaScript. Belum merupakan pengujian langsung di browser/perangkat atau Firebase.
+
+
+## Perubahan v8.7.7
+- Toast reset filter resep dan bahan menggunakan notifikasi mengambang yang hilang otomatis.
+- Resep baru menyimpan `createdAt` dan `updatedAt` (timestamp milidetik).
+- Saat resep diedit, `createdAt` dipertahankan dan `updatedAt` diperbarui.
+- Kartu resep menampilkan tanggal dibuat dan terakhir diubah. Resep lama tanpa `createdAt` ditandai belum tersedia, tanpa mengarang tanggal.
