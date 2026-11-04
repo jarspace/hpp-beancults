@@ -1,8 +1,8 @@
-# HPP Beancults — v8.6.0
+# HPP Beancults — v8.6.1
 
 Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur data Firebase dan fitur utama versi sebelumnya.
 
-## Perubahan v8.6.0
+## Perubahan v8.6.1
 - Perhitungan yield bahan tidak lagi menganggap nilai 0 sebagai 100% secara diam-diam.
 - Validasi bahan: nama, harga beli, kuantitas beli, dan yield.
 - Konversi satuan dibatasi pada pasangan yang didukung: kg↔gram dan liter↔ml. Satuan yang tidak kompatibel ditolak saat menyimpan resep.

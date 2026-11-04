@@ -174,7 +174,7 @@
                 
                 <div class="absolute bottom-6 text-center w-full text-slate-500 dark:text-slate-600 opacity-60 pointer-events-none">
                     <p class="text-[10px] font-medium tracking-widest uppercase">Created by Beancults</p>
-                    <p class="text-[9px] font-mono mt-0.5">v8.6.0 (Calculation & Reliability)</p>
+                    <p class="text-[9px] font-mono mt-0.5">v8.6.1 (Category Filter & Calculation)</p>
                 </div>
             </div>
 
@@ -580,6 +580,11 @@
                                 <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
                                 <input v-model="ingredientSearch" type="text" placeholder="Cari nama bahan / brand..." class="w-full pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none transition-all">
                             </div>
+                            <select v-model="ingredientCategoryFilter" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white max-w-[160px]">
+                                <option value="All">Semua Kategori</option>
+                                <option v-for="cat in ingredientCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                <option value="__uncategorized">Tanpa Kategori</option>
+                            </select>
                             <select v-model="ingredientSupplierFilter" class="py-2 px-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 dark:text-white max-w-[150px]">
                                 <option value="All">Semua Supplier</option>
                                 <option v-for="sup in suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}</option>
@@ -1127,7 +1132,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.5.1 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.6.1 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1328,7 +1333,7 @@
                     newPlatform: { name: '', fee: 20 },
 
                     recipeSearch: '', recipeCategoryFilter: 'All', recipeSort: 'name_asc', 
-                    ingredientSearch: '', ingredientSupplierFilter: 'All', ingredientSort: 'name_asc', 
+                    ingredientSearch: '', ingredientCategoryFilter: 'All', ingredientSupplierFilter: 'All', ingredientSort: 'name_asc', 
                     priceInputMode: 'margin',
                     
                     // Search dropdown states
@@ -1485,6 +1490,8 @@
                         const s = this.ingredientSearch.toLowerCase();
                         result = result.filter(i => i.name.toLowerCase().includes(s) || (i.brand && i.brand.toLowerCase().includes(s)));
                     }
+                    if (this.ingredientCategoryFilter === '__uncategorized') result = result.filter(i => !i.category);
+                    else if (this.ingredientCategoryFilter !== 'All') result = result.filter(i => i.category === this.ingredientCategoryFilter);
                     if (this.ingredientSupplierFilter !== 'All') result = result.filter(i => i.supplierId === this.ingredientSupplierFilter);
                     return result.sort((a, b) => {
                         if (this.ingredientSort === 'name_asc') return a.name.localeCompare(b.name);
