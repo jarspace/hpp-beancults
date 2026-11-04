@@ -122,3 +122,12 @@ Aplikasi web HPP/COGS untuk operasional F&B. Build ini mempertahankan struktur d
 - Reduced the selling-price summary block height.
 - Kept Cancel and Save buttons at a practical touch height.
 - No changes to pricing formulas, HPP calculations, Firestore paths, or save behavior.
+
+
+## v8.9.3 – Full Mobile Compact Recipe Editor
+- Header and menu metadata area are more compact on phones; name and category share one row.
+- Ingredient composition gets more vertical space through reduced top padding and compact sticky summary.
+- Ingredient selection control is larger, clearer, and visually distinct; quantity input is wider and easier to tap.
+- Selling-price footer uses tighter spacing while retaining margin/custom-price controls and 44px action buttons.
+- Applies to both Menu and Prep recipe editor; desktop layout is preserved.
+- No changes to HPP formulas, Firestore paths, or save behavior.

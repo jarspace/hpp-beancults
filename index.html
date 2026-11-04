@@ -49,7 +49,42 @@
             .mobile-form-controls input:not([type="checkbox"]):not([type="radio"]),
             .mobile-form-controls select,
             .mobile-form-controls textarea { min-height: 44px; font-size: 16px; }
-            .mobile-form-footer { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+            .mobile-form-footer { padding-bottom: max(.65rem, env(safe-area-inset-bottom)); }
+
+            /* Recipe editor: reclaim vertical space for ingredient selection and quantity entry */
+            .recipe-modal-titlebar { padding: .55rem .8rem !important; min-height: 48px; }
+            .recipe-modal-titlebar h3 { font-size: 1rem; line-height: 1.25rem; }
+            .recipe-form-top { padding: .55rem .75rem !important; }
+            .recipe-type-tabs { margin-bottom: .5rem !important; padding: .15rem !important; }
+            .recipe-type-tabs button { min-height: 34px; padding-top: .35rem !important; padding-bottom: .35rem !important; font-size: 11px !important; }
+            .recipe-top-fields { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) !important; gap: .45rem !important; }
+            .recipe-top-fields > div:first-child { grid-column: auto !important; }
+            .recipe-top-fields label { margin-bottom: .15rem !important; font-size: 9px !important; }
+            .recipe-top-fields input, .recipe-top-fields select { min-height: 42px !important; padding: .45rem .55rem !important; }
+            .recipe-top-fields .recipe-prep-yield { grid-column: 1 / -1; padding: .5rem !important; margin-top: 0 !important; gap: .5rem !important; }
+            .recipe-scroll-area { padding: .5rem .65rem .8rem !important; gap: .55rem !important; }
+            .recipe-composition-summary { margin-left: -.65rem !important; margin-right: -.65rem !important; padding: .25rem .55rem !important; }
+            .recipe-composition-summary summary { min-height: 42px !important; padding: .25rem .4rem !important; }
+            .recipe-composition-summary summary > div:first-child i { display: none; }
+            .recipe-composition-summary summary > div:first-child > div > div:last-child { display: none; }
+            .recipe-composition-summary summary .text-sm { font-size: 12px !important; }
+            .recipe-composition-heading { margin-bottom: .25rem !important; min-height: 38px; }
+            .recipe-composition-heading label { font-size: 11px !important; }
+            .recipe-composition-heading button { min-height: 40px; padding: .45rem .7rem !important; font-size: 11px !important; }
+            .recipe-item-card { padding: .65rem !important; gap: .55rem !important; margin-bottom: .5rem !important; }
+            .recipe-item-select { min-height: 50px !important; padding: .6rem .65rem !important; border: 1px solid #f2c66d !important; border-radius: .6rem !important; background: #fffbeb !important; }
+            .dark .recipe-item-select { background: rgba(120, 53, 15, .18) !important; border-color: #92400e !important; }
+            .recipe-qty-input { width: 104px !important; min-height: 50px !important; font-size: 18px !important; }
+            .recipe-qty-row { align-items: end !important; }
+            .recipe-price-panel { padding: .55rem .7rem !important; }
+            .recipe-price-panel .recipe-price-heading { margin-bottom: .35rem !important; }
+            .recipe-price-panel .recipe-price-cards { gap: .4rem !important; margin-bottom: .45rem !important; }
+            .recipe-price-panel .recipe-price-card { padding: .45rem .55rem !important; min-height: 58px; }
+            .recipe-price-panel .recipe-price-card label { font-size: 8px !important; }
+            .recipe-price-panel .recipe-price-card input { min-height: 30px !important; height: 30px; font-size: 16px !important; }
+            .recipe-price-panel .recipe-base-price { padding: .55rem .7rem !important; margin-bottom: .45rem !important; }
+            .recipe-price-panel .recipe-base-price > div { min-height: 30px; }
+            .recipe-price-panel .recipe-action-buttons button { min-height: 44px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
         }
         @supports (height: 100dvh) {
             .mobile-modal-height { height: 100dvh; max-height: 100dvh; }
@@ -818,7 +853,7 @@
                 <!-- MODAL: RECIPE & PREP -->
                 <div v-if="showRecipeModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
                     <div class="bg-slate-50 dark:bg-slate-900 w-full h-full mobile-modal-height sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl sm:max-w-xl flex flex-col shadow-xl overflow-hidden animate-fade-in-up">
-                        <div class="bg-white dark:bg-slate-800 flex justify-between items-center border-b border-slate-200 dark:border-slate-700 p-4 shrink-0 z-10 transition-colors">
+                        <div class="recipe-modal-titlebar bg-white dark:bg-slate-800 flex justify-between items-center border-b border-slate-200 dark:border-slate-700 p-4 shrink-0 z-10 transition-colors">
                             <h3 class="font-bold text-slate-900 dark:text-white text-lg">
                                 <i :class="recipeForm.type === 'prep' ? 'fa-solid fa-box-open text-indigo-500' : 'fa-solid fa-utensils text-amber-500'" class="mr-2"></i>
                                 {{ editingRecipeId ? 'Ubah' : 'Buat' }} {{ recipeForm.type === 'prep' ? 'Sub-Resep / Adonan' : 'Menu Jualan' }}
@@ -828,13 +863,13 @@
 
                         <form @submit.prevent="saveRecipe" class="flex flex-col flex-1 min-h-0 overflow-hidden text-sm mobile-form-controls">
                             <!-- STICKY TOP FORM -->
-                            <div class="bg-white dark:bg-slate-800 p-4 shrink-0 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10 transition-colors">
-                                <div v-if="!editingRecipeId" class="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-lg mb-4 border border-slate-200 dark:border-slate-700">
+                            <div class="recipe-form-top bg-white dark:bg-slate-800 p-4 shrink-0 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10 transition-colors">
+                                <div v-if="!editingRecipeId" class="recipe-type-tabs flex p-1 bg-slate-100 dark:bg-slate-900 rounded-lg mb-4 border border-slate-200 dark:border-slate-700">
                                     <button type="button" @click="recipeForm.type = 'menu'" :class="recipeForm.type === 'menu' ? 'bg-white dark:bg-slate-700 shadow-sm text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-1.5 text-xs rounded-md transition-all">Menu Jualan</button>
                                     <button type="button" @click="recipeForm.type = 'prep'" :class="recipeForm.type === 'prep' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="flex-1 py-1.5 text-xs rounded-md transition-all">Bahan Setengah Jadi (Prep)</button>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="recipe-top-fields grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div class="sm:col-span-2">
                                         <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase tracking-wide">Nama {{ recipeForm.type === 'prep' ? 'Adonan / Batch' : 'Menu' }} *</label>
                                         <input v-model="recipeForm.name" type="text" required :placeholder="recipeForm.type === 'prep' ? 'Misal: Adonan Dimsum' : 'Misal: Es Kopi Susu'" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 dark:text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-bold">
@@ -846,7 +881,7 @@
                                         </select>
                                     </div>
                                     
-                                    <div v-if="recipeForm.type === 'prep'" class="sm:col-span-3 grid grid-cols-2 gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg border border-indigo-200 dark:border-indigo-800/50 mt-1">
+                                    <div v-if="recipeForm.type === 'prep'" class="recipe-prep-yield sm:col-span-3 grid grid-cols-2 gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg border border-indigo-200 dark:border-indigo-800/50 mt-1">
                                         <div>
                                             <label class="block font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-[10px] uppercase tracking-wide">Hasil Produksi (Batch) *</label>
                                             <input v-model.number="recipeForm.yieldQty" type="number" required min="0.01" step="any" class="w-full px-3 py-2 border border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-bold font-mono">
@@ -868,9 +903,9 @@
                             </div>
 
                             <!-- SCROLLABLE MIDDLE -->
-                            <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-slate-50 dark:bg-slate-900 pb-6">
+                            <div class="recipe-scroll-area flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-slate-50 dark:bg-slate-900 pb-6">
                                 <!-- RINGKASAN KOMPOSISI COMPACT: daftar bahan dibuka hanya saat diperlukan -->
-                                <div class="sticky top-0 z-30 -mx-4 px-4 py-2 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-700">
+                                <div class="recipe-composition-summary sticky top-0 z-30 -mx-4 px-4 py-2 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-700">
                                     <details class="group">
                                         <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer min-h-[44px] flex items-center justify-between gap-3 rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                                             <div class="min-w-0 flex items-center gap-2">
@@ -902,7 +937,7 @@
                                     </div>
                                 </div>
 
-                                <div class="flex justify-between items-center mb-2">
+                                <div class="recipe-composition-heading flex justify-between items-center mb-2">
                                     <label class="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wide">Komposisi Bahan</label>
                                     <button type="button" @click="addRecipeItemRow" class="text-amber-700 hover:text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase shadow-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i> Tambah Item</button>
                                 </div>
@@ -913,7 +948,7 @@
                                     </div>
                                     
                                     <transition-group name="list">
-                                    <div v-for="(item, idx) in recipeForm.items" :key="'item-'+idx" class="flex flex-col gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative group mb-3" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10' : ''">
+                                    <div v-for="(item, idx) in recipeForm.items" :key="'item-'+idx" class="recipe-item-card flex flex-col gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm relative group mb-3" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10' : ''">
                                         <button type="button" @click="removeRecipeItemRow(idx)" class="absolute right-2 top-2 text-slate-300 hover:text-red-500 dark:bg-slate-800 bg-white rounded-full p-1 transition-colors z-10"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
 
                                         <!-- Select Ingredient - DIPERBARUI UNTUK SEARCH -->
@@ -927,7 +962,7 @@
                                             
                                             <!-- Fitur Search di Dropdown Bahan Baku (Custom Select) -->
                                             <div class="relative z-20">
-                                                <button type="button" @click.prevent="openIngredientSelect(idx)" class="w-full text-left px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
+                                                <button type="button" @click.prevent="openIngredientSelect(idx)" class="recipe-item-select w-full text-left px-2 py-2 border-b border-slate-200 dark:border-slate-700 text-sm bg-transparent dark:text-white focus:border-amber-500 outline-none font-semibold cursor-pointer flex justify-between items-center" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400' : (item.ingredientId ? '' : 'text-slate-400 font-normal')">
                                                     <span class="truncate pr-2">{{ getIngredientName(item.ingredientId) || '-- Ketuk untuk memilih --' }}</span>
                                                     <i class="fa-solid fa-chevron-right text-xs text-slate-400 shrink-0"></i>
                                                 </button>
@@ -935,11 +970,11 @@
                                         </div>
                                         
                                         <!-- Qty & Unit & Cost Row -->
-                                        <div class="flex items-end justify-between mt-1">
+                                        <div class="recipe-qty-row flex items-end justify-between mt-1">
                                             <div class="flex items-center gap-1.5">
                                                 <div class="flex flex-col">
                                                     <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Takaran</label>
-                                                    <input v-model.number="item.qty" type="number" required step="any" min="0.001" placeholder="0" class="w-20 px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-mono text-center focus:ring-1 focus:ring-amber-500 outline-none bg-slate-50 dark:bg-slate-900 dark:text-white">
+                                                    <input v-model.number="item.qty" type="number" required step="any" min="0.001" placeholder="0" class="recipe-qty-input w-20 px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-mono text-center focus:ring-1 focus:ring-amber-500 outline-none bg-slate-50 dark:bg-slate-900 dark:text-white">
                                                 </div>
                                                 
                                                 <div class="flex flex-col mb-0.5">
@@ -983,9 +1018,9 @@
                             </div>
 
                             <!-- STICKY BOTTOM FORM -->
-                            <div class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10 transition-colors mobile-form-footer">
+                            <div class="recipe-price-panel bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10 transition-colors mobile-form-footer">
                                 <div v-if="recipeForm.type === 'menu'">
-                                    <div class="flex items-center justify-between mb-1.5">
+                                    <div class="recipe-price-heading flex items-center justify-between mb-1.5">
                                         <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Perhitungan Harga Jual:</span>
                                         <div class="flex gap-2 text-[10px] font-bold">
                                             <button type="button" @click="priceInputMode = 'margin'" :class="priceInputMode === 'margin' ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="px-2 py-1 rounded transition min-h-[32px]">Margin (%)</button>
@@ -993,13 +1028,13 @@
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-2 gap-2 mb-2">
-                                        <div class="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700 truncate">
+                                    <div class="recipe-price-cards grid grid-cols-2 gap-2 mb-2">
+                                        <div class="recipe-price-card bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700 truncate">
                                             <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase block truncate">Modal (1 porsi)</span>
                                             <span class="font-mono font-bold text-slate-900 dark:text-white text-sm sm:text-base">Rp {{ formatNumber(modalCalculatedRecipeHPP) }}</span>
                                         </div>
 
-                                        <div v-if="priceInputMode === 'margin'" class="bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                                        <div v-if="priceInputMode === 'margin'" class="recipe-price-card bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-800/50">
                                             <label class="text-[9px] font-bold text-amber-800 dark:text-amber-400 uppercase block mb-0.5">Target Profit Margin</label>
                                             <div class="flex items-center">
                                                 <input v-model.number="recipeForm.margin" @input="handleMarginInput" type="number" min="0" max="99" required class="w-full font-mono font-bold text-amber-900 dark:text-amber-200 bg-transparent focus:outline-none text-sm sm:text-base min-h-[32px]">
@@ -1007,7 +1042,7 @@
                                             </div>
                                         </div>
 
-                                        <div v-else class="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50">
+                                        <div v-else class="recipe-price-card bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50">
                                             <label class="text-[9px] font-bold text-emerald-800 dark:text-emerald-400 uppercase block mb-0.5">Hasil Margin Persen</label>
                                             <div class="font-mono font-bold text-emerald-900 dark:text-emerald-300 text-base" :class="calculatedMarginFromCustomPrice < targetMargin ? 'text-red-500' : ''">
                                                 {{ calculatedMarginFromCustomPrice }}%
@@ -1015,7 +1050,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="bg-emerald-600 dark:bg-emerald-700 text-white rounded-lg p-2.5 mb-2 shadow-sm">
+                                    <div class="recipe-base-price bg-emerald-600 dark:bg-emerald-700 text-white rounded-lg p-2.5 mb-2 shadow-sm">
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-xs uppercase tracking-wide">Harga Jual Dasar:</span>
                                             <div v-if="priceInputMode === 'custom_price'" class="flex items-center bg-emerald-700 dark:bg-emerald-800 rounded-lg px-2 py-1 border border-emerald-500">
@@ -1038,7 +1073,7 @@
                                     </div>
                                 </div>
 
-                                <div class="flex gap-2">
+                                <div class="recipe-action-buttons flex gap-2">
                                     <button type="button" @click="showRecipeModal = false" class="px-4 py-2.5 sm:py-3 min-h-[44px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl font-bold text-sm transition-colors w-1/3 text-center">Batal</button>
                                     <button type="submit" class="flex-1 px-4 py-2.5 sm:py-3 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold shadow-md flex items-center justify-center gap-2 text-sm transition-colors">
                                         <i class="fa-regular fa-floppy-disk"></i> Simpan {{ recipeForm.type === 'prep' ? 'Prep' : 'Menu' }}
@@ -1272,7 +1307,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.2 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.3 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
