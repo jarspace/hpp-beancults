@@ -1,4 +1,4 @@
-# HPP Beancults v8.9.10
+# HPP Beancults v8.9.11
 
 ## Perubahan v8.9.9 – Kitchen Mode langsung ke Buku Resep & SOP
 - Saat Kitchen Mode diaktifkan, aplikasi langsung membuka tab Buku Resep & SOP tanpa bergantung pada tab sebelumnya.
@@ -60,3 +60,10 @@
 - Label kategori dipindahkan ke baris tersendiri pada tampilan mobile.
 - Ruang kanan disediakan agar tidak bertabrakan dengan tombol hapus (×).
 - Perubahan hanya menyentuh tampilan mobile; perhitungan dan data tidak diubah.
+
+
+## Perubahan v8.9.11 – Tampilan merek bahan pada resep & SOP
+- Merek bahan baku ditampilkan di bawah nama bahan pada kartu resep, termasuk kelompok kemasan/penunjang.
+- Merek ikut ditampilkan pada hasil cetak Buku Resep & SOP.
+- Mengambil merek langsung dari master bahan baku; tidak membuat salinan merek di resep.
+- Merek kosong tidak menampilkan baris tambahan. Perhitungan HPP dan struktur data tidak berubah.

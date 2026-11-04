@@ -720,6 +720,7 @@
                                                     <span class="font-semibold text-sm" :class="item.ingredientId.startsWith('recipe_') ? 'text-indigo-700 dark:text-indigo-400 font-bold' : ''">
                                                         {{ getIngredientName(item.ingredientId) }}
                                                     </span>
+                                                    <span v-if="getIngredientBrand(item.ingredientId)" class="block text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Merek: {{ getIngredientBrand(item.ingredientId) }}</span>
                                                 </div>
                                                 <div class="text-right">
                                                     <span class="font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-700 px-2 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-600">
@@ -740,6 +741,7 @@
                                                 <div class="flex-1 min-w-0 pr-2 flex items-center gap-1.5">
                                                     <span class="font-medium text-sm text-indigo-950 dark:text-indigo-200">
                                                         {{ getIngredientName(item.ingredientId) }}
+                                                        <span v-if="getIngredientBrand(item.ingredientId)" class="block text-[10px] text-slate-500 dark:text-indigo-300 font-medium mt-0.5">Merek: {{ getIngredientBrand(item.ingredientId) }}</span>
                                                     </span>
                                                 </div>
                                                 <div class="text-right">
@@ -1461,7 +1463,7 @@
                         
                         <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center shrink-0 bg-slate-50 dark:bg-slate-900 rounded-b-2xl">
                             <div class="text-[9px] text-slate-400 text-left leading-tight">
-                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.10 (GitHub PWA)
+                                <span class="font-bold text-slate-500 uppercase tracking-widest">Beancults</span><br>v8.9.11 (GitHub PWA)
                             </div>
                             <button type="button" @click="showSettingsModal = false" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-sm font-bold transition-colors">Tutup</button>
                         </div>
@@ -1532,6 +1534,7 @@
                                 <td class="py-2 text-center text-sm">{{ idx + 1 }}</td>
                                 <td class="py-2 font-semibold text-base" :class="item.ingredientId && item.ingredientId.startsWith('recipe_') ? 'font-bold italic' : ''">
                                     {{ getIngredientName(item.ingredientId) }}
+                                    <div v-if="getIngredientBrand(item.ingredientId)" class="text-xs font-normal text-gray-600 mt-0.5">Merek: {{ getIngredientBrand(item.ingredientId) }}</div>
                                 </td>
                                 <td class="py-2 text-right font-bold text-base">
                                     {{ item.qty }} <span class="text-xs font-normal">{{ item.unit || getIngredientUnit(item.ingredientId) }}</span>
@@ -1560,6 +1563,7 @@
                                 <td class="py-2 text-center text-sm">{{ idx + 1 }}</td>
                                 <td class="py-2 font-semibold text-base">
                                     {{ getIngredientName(item.ingredientId) }}
+                                    <div v-if="getIngredientBrand(item.ingredientId)" class="text-xs font-normal text-gray-600 mt-0.5">Merek: {{ getIngredientBrand(item.ingredientId) }}</div>
                                 </td>
                                 <td class="py-2 text-right font-bold text-base">
                                     {{ item.qty }} <span class="text-xs font-normal">{{ item.unit || getIngredientUnit(item.ingredientId) }}</span>
@@ -2179,6 +2183,11 @@
                     }
                     const i = this.getIngredient(id); 
                     return i ? i.name : null; 
+                },
+                getIngredientBrand(id) {
+                    if (!id || id.startsWith('recipe_')) return '';
+                    const ingredient = this.getIngredient(id);
+                    return ingredient && ingredient.brand ? String(ingredient.brand).trim() : '';
                 },
                 getIngredientUnit(id) { 
                     if (id && id.startsWith('recipe_')) {
