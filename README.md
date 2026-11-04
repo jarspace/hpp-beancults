@@ -1,4 +1,4 @@
-# HPP Beancults v8.9.9
+# HPP Beancults v8.9.10
 
 ## Perubahan v8.9.9 – Kitchen Mode langsung ke Buku Resep & SOP
 - Saat Kitchen Mode diaktifkan, aplikasi langsung membuka tab Buku Resep & SOP tanpa bergantung pada tab sebelumnya.
@@ -54,3 +54,9 @@
 - Email pada header disamarkan sebagian saat Kitchen Mode aktif: dua karakter awal tetap terlihat, bagian nama pengguna disamarkan, dan domain tetap ditampilkan.
 - Di luar Kitchen Mode, email tetap tampil lengkap.
 - Tidak mengubah autentikasi atau data akun.
+
+
+## Perubahan v8.9.10 – Perbaikan label Kemasan / Penunjang
+- Label kategori dipindahkan ke baris tersendiri pada tampilan mobile.
+- Ruang kanan disediakan agar tidak bertabrakan dengan tombol hapus (×).
+- Perubahan hanya menyentuh tampilan mobile; perhitungan dan data tidak diubah.
